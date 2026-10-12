@@ -33,6 +33,7 @@ class RegisterRequest extends FormRequest
             'gender' => 'required|in:male,female,other',
             'username' => 'required|string|min:3|max:64|unique:users,username',
             'password' => ['required', RulesPassword::min((8))->letters()->mixedCase()->numbers()->symbols()],
+            'role' => 'required|string|exists:roles,name',
 
             //Informazioni Indirizzo
             'country_id' => 'required|integer|exists:countries,id',

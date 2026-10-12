@@ -10,7 +10,7 @@ class Credit extends Model
 
     protected $fillable = [
         'user_id',
-        'value',
+        'count',
     ];
 
     /* --------- RELAZIONI --------*/

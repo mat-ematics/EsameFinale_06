@@ -84,7 +84,7 @@ class UserService {
             $this->assignRolesToUser($newUser, $data['role']);
 
             //Creazione Record Credito
-            $newUser->credit()->create(['value' => $data['credit']]);
+            $newUser->credit()->create(['count' => $data['credit']]);
 
             //Creazione Record Indirizzo
             $this->addressService->createAddress($newUser, $data);
