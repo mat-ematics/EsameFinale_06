@@ -56,7 +56,7 @@ class TvSeriesController extends Controller
         if (Gate::allows('isAdmin')) {
             try {
                 $uploadedFiles = collect($request->file('files'));
-                $tvSeries = $this->tvSeriesService->createTvSeries($request->validated(), $uploadedFiles);
+                $tvSeries = $this->tvSeriesService->createTvSeries($request->validated(), $uploadedFiles->all());
 
                 return AppHelpers::jsonResponse('Tv Series Successfully Created', 201, $tvSeries);
             } catch (\Throwable $th) {

@@ -27,12 +27,16 @@ class TokenAuth
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param string $mode The mode of the Authentication, either 'required' or 'optional' (other values treated as required)
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, string $mode = 'required'): Response
     {
         $token = $request->bearerToken();
 
         if (!$token) {
+            if ($mode === 'optional') {
+                return $next($request); //guest, no user set
+            }
             return AppHelpers::jsonResponse('Missing Token!', 401);
         }
 

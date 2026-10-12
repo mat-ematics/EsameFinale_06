@@ -75,7 +75,7 @@ class EpisodeController extends Controller
                 }
 
                 $uploadedFiles = collect($request->file('files'));
-                $episode = $this->episodeService->createEpisode($tvSeries->id, $data, $uploadedFiles);
+                $episode = $this->episodeService->createEpisode($tvSeries->id, $data, $uploadedFiles->all());
 
                 return AppHelpers::jsonResponse('Episode Successfully Created', 201, $episode);
             } catch (\Throwable $th) {

@@ -15,12 +15,7 @@ class CategoryResource extends JsonResource
         parent::__construct($resource);
         $this->isAdmin = $isAdmin;
     }
-    
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
+
     /**
      * Transform the resource into an array.
      *

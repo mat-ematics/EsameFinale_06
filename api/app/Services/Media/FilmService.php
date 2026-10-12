@@ -39,7 +39,7 @@ class FilmService {
     }
 
     /**
-     * @param Collection<int, UploadedFile>|UploadedFile[]|UplloadedFile $uploadedFiles
+     * @param Collection<int, UploadedFile>|UploadedFile[]|UploadedFile $uploadedFiles
      */
     public function createFilm(array $data, UploadedFile|Collection|array $uploadedFiles) : Film
     {

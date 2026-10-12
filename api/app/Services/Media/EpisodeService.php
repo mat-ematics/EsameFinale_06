@@ -54,7 +54,7 @@ class EpisodeService {
     }
 
     /**
-     * @param Collection<int, UploadedFile>|UploadedFile[]|UplloadedFile $uploadedFiles
+     * @param Collection<int, UploadedFile>|UploadedFile[]|UploadedFile $uploadedFiles
      */
     public function createEpisode(int $tvSeriesId, array $data, UploadedFile|Collection|array $uploadedFiles) : Episode
     {

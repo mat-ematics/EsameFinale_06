@@ -41,7 +41,7 @@ class TvSeriesService {
     }
 
     /**
-     * @param Collection<int, UploadedFile>|UploadedFile[]|UplloadedFile $uploadedFiles
+     * @param Collection<int, UploadedFile>|UploadedFile[]|UploadedFile $uploadedFiles
      */
     public function createTvSeries(array $data, UploadedFile|Collection|array $uploadedFiles) : TvSeries
     {

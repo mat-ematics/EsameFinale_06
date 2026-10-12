@@ -59,7 +59,7 @@ class FilmController extends Controller
         if (Gate::allows('isAdmin')) {
             try {
                 $uploadedFiles = collect($request->file('files'));
-                $film = $this->filmService->createFilm($request->validated(), $uploadedFiles);
+                $film = $this->filmService->createFilm($request->validated(), $uploadedFiles->all());
                 return AppHelpers::jsonResponse('Film Successfully Created', 201, $film);
             } catch (\Throwable $th) {
                 return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
