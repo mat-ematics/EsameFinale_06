@@ -3,6 +3,7 @@
 use App\Helpers\AppHelpers;
 use App\Http\Controllers\api\v1\AuthController;
 use App\Http\Controllers\api\v1\CategoryController;
+use App\Http\Controllers\api\v1\ConfigController;
 use App\Http\Controllers\api\v1\EpisodeController;
 use App\Http\Controllers\api\v1\FilmController;
 use App\Http\Controllers\api\v1\ProfileController;
@@ -10,8 +11,8 @@ use App\Http\Controllers\api\v1\TvSeriesController;
 use App\Http\Controllers\api\v1\UserController;
 use App\Http\Middleware\ProtectLogin;
 use App\Http\Middleware\ProtectNewLogin;
+use App\Http\Middleware\RequireAuth;
 use App\Http\Middleware\TokenAuth;
-use App\Models\Global\Config;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -34,10 +35,6 @@ Route::prefix(_VERS)->group(function () {
         Route::get('/login/test/{username}/{password}', [AuthController::class, 'testLogin']);
     }
 
-    /* -------- ROUTE CONFIGURAZIONE ---------- */
-    //Route READ
-    // Route::get('/config');
-
     /* -------- ROUTE AUTENTICAZIONE ---------- */
 
     Route::post('/register', [AuthController::class, 'register']);
@@ -46,9 +43,34 @@ Route::prefix(_VERS)->group(function () {
     Route::get('/login/{userHash}/{passwordHash}', [AuthController::class, 'newLogin'])->middleware(ProtectNewLogin::class);
 
 
+    /* -------- BEARER TOKEN OPZIONALE ---------- */
+
+    Route::middleware([TokenAuth::class.':optional'])->group(function () {
+
+        /* -------- ROUTE TEST E VARIE ---------- */
+
+        Route::get('/test/optional-bearer', function() {
+            return 'optional bearer works!';
+        });
+
+        /* -------- ROUTE CONFIGURAZIONE ---------- */
+        //Route READ
+        Route::get('/configs', [ConfigController::class, 'index']);
+        Route::get('/configs/{config}', [ConfigController::class, 'show']);
+        //Route UPDATE
+        Route::put('/configs/{config}', [ConfigController::class, 'update'])->middleware([RequireAuth::class]);
+
+    });
+
     /* -------- PROTETTE DA BEARER TOKEN ---------- */
 
     Route::middleware([TokenAuth::class])->group(function () {
+
+        /* -------- ROUTE TEST E VARIE ---------- */
+
+        Route::get('/test/bearer', function() {
+            return 'it works!';
+        });
 
         /* -------- ROUTE AUTENTICAZIONE ---------- */
 
