@@ -17,8 +17,7 @@ class PasswordService {
             
             //Creazione Hash e Salt di Password
             $pswSalt = $salt ?? AppHelpers::generateSalt();
-            $pswHashSimple = Password::getPasswordHash($password);
-            $pswHash = Password::getPasswordHash($pswHashSimple, $pswSalt);
+            $pswHash = Password::getPasswordHashDouble($password, $pswSalt);
 
             //Creazione e Inserimento Model e Record Password associato all'utente
             $pswModel = $user->passwords()->create([
@@ -33,8 +32,7 @@ class PasswordService {
     public function updatePassword(User $user, string $password, ?string $salt = null) : Password
     {
         $pswSalt = $salt ?? AppHelpers::generateSalt();
-        $pswHashSimple = Password::getPasswordHash($password);
-        $pswHash = Password::getPasswordHash($pswHashSimple, $pswSalt);
+        $pswHash = Password::getPasswordHashDouble($password, $pswSalt);
 
         $oldPsws = $user->passwords;
 

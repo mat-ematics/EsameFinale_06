@@ -54,9 +54,9 @@ class AuthService {
         //     Log::alert('user does not exist');
         // }
 
-        if (!$user->currentPassword->checkPasswordLogin($password)) {
-            Log::alert('Password is wrong! Given: ' . $password . ' Actual: ' . $user->currentPassword->password);
-        }
+        // if (!$user->currentPassword->checkPasswordLogin($password)) {
+        //     Log::alert('Password is wrong! Given: ' . $password . ' Actual: ' . $user->currentPassword->password);
+        // }
 
         if (!isset($user) || !$user->currentPassword->checkPasswordLogin($password)) {
             $access->addError();

@@ -27,9 +27,7 @@ class Password extends Model
 
     public function checkPassword(#[\SensitiveParameter] string $password) : bool
     {
-        $pswHashSimple = Password::getPasswordHash($password);
-        $combined = hash('sha256', $this->salt . $pswHashSimple);
-        return hash_equals($combined, $this->password);
+       return hash_equals($this->password, Password::getPasswordHashDouble($password, $this->salt));
     }
 
     public function checkPasswordLogin(string $passwordHash) : bool {
@@ -43,6 +41,20 @@ class Password extends Model
         string $salt = '',
     ) : string
     {
+        if ($password === null || $password === '') {
+            throw new \InvalidArgumentException('Password cannot be empty');
+        }
         return $password ? hash("sha256", $salt . $password) : null;
+    }
+
+    public static function getPasswordHashDouble(
+        #[\SensitiveParameter] ?string $password,
+        string $salt = '',
+    ) : string
+    {
+        if ($password === null || $password === '') {
+            throw new \InvalidArgumentException('Password cannot be empty');
+        }
+        return static::getPasswordHash(static::getPasswordHash($password), $salt);
     }
 }

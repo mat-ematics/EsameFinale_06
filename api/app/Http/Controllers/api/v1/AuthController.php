@@ -97,7 +97,7 @@ class AuthController extends Controller
             }
 
             // SIMULA L'UNIONE TRA SALE E PASSWORD
-            $passwordHash = Password::getPasswordHash($password, $user->currentPassword->salt);
+            $passwordHash = Password::getPasswordHashDouble($password, $user->currentPassword->salt);
 
             // RITORNO ALLA LOGIN INIZIALE
             return $this->newLogin($request, $user->username, $passwordHash);
