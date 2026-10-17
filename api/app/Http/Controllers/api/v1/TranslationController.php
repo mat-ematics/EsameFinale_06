@@ -12,6 +12,7 @@ use App\Services\Global\TranslationService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TranslationController extends Controller
 {
@@ -36,6 +37,15 @@ class TranslationController extends Controller
             return $callback();
         } catch (\Throwable $th) {
             return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
+        }
+    }
+
+    protected function runCheckAdmin(Closure $callback)
+    {
+        if (Gate::allows('isAdmin')) {
+            return $this->run($callback);
+        } else {
+            return AppHelpers::jsonResponseForbidden();
         }
     }
 
@@ -74,7 +84,7 @@ class TranslationController extends Controller
      */
     protected function updateResponse(string $type, string|int $lang, string $key, array $data)
     {
-        return $this->run(function () use ($type, $lang, $key, $data) {
+        return $this->runCheckAdmin(function () use ($type, $lang, $key, $data) {
             $langRecord = $this->translationService->resolveLanguage($lang);
             $translation = $this->translationService->findTranslationOrFail($type, $langRecord, $key);
  
@@ -89,7 +99,7 @@ class TranslationController extends Controller
      */
     protected function deleteResponse(string $type, string|int $lang, string $key, string $message)
     {
-        return $this->run(function () use ($type, $lang, $key, $message) {
+        return $this->runCheckAdmin(function () use ($type, $lang, $key, $message) {
             $langRecord = $this->translationService->resolveLanguage($lang);
             $translation = $this->translationService->findTranslationOrFail($type, $langRecord, $key);
  
@@ -142,7 +152,8 @@ class TranslationController extends Controller
  
     public function createDefault(TranslationStoreRequest $request, string|int $lang)
     {
-        return $this->run(function () use ($request, $lang) {
+        return $this->runCheckAdmin(function () use ($request, $lang) {
+
             $langRecord = $this->translationService->resolveLanguage($lang);
  
             $translation = $this->translationService->createTranslation(
@@ -172,7 +183,7 @@ class TranslationController extends Controller
      */
     public function upsertCustom(TranslationUpdateRequest $request, string|int $lang, string $key)
     {
-        return $this->run(function () use ($request, $lang, $key) {
+        return $this->runCheckAdmin(function () use ($request, $lang, $key) {
             $langRecord = $this->translationService->resolveLanguage($lang);
  
             $resource = $this->translationService->upsertCustomTranslation(
