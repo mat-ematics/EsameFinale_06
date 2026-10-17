@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
 
 class CategoryUpdateRequest extends CategoryStoreRequest
 {
-    protected int $categoryId = 0;
+    protected ?int $categoryId = null;
 
     /**
      * Determine if the user is authorized to make this request.
@@ -34,14 +34,6 @@ class CategoryUpdateRequest extends CategoryStoreRequest
      */
     public function rules(): array
     {
-        $rules = AppHelpers::updateRequestRules(parent::rules());
-
-        $rules['name'] = [
-            'string',
-            'max:255',
-            Rule::unique('categories', 'name')->ignore($this->categoryId),
-        ];
-
-        return $rules;
+        return AppHelpers::updateRequestRules(parent::rules(), $this->categoryId);
     }
 }

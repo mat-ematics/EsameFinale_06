@@ -6,7 +6,9 @@ use App\Http\Controllers\api\v1\CategoryController;
 use App\Http\Controllers\api\v1\ConfigController;
 use App\Http\Controllers\api\v1\EpisodeController;
 use App\Http\Controllers\api\v1\FilmController;
+use App\Http\Controllers\api\v1\LanguageController;
 use App\Http\Controllers\api\v1\ProfileController;
+use App\Http\Controllers\api\v1\TranslationController;
 use App\Http\Controllers\api\v1\TvSeriesController;
 use App\Http\Controllers\api\v1\UserController;
 use App\Http\Middleware\ProtectLogin;
@@ -60,6 +62,44 @@ Route::prefix(_VERS)->group(function () {
         //Route UPDATE
         Route::put('/configs/{config}', [ConfigController::class, 'update'])->middleware([RequireAuth::class]);
 
+        /* -------- ROUTE LANGUAGES ---------- */
+        //Route READ
+        Route::get('/langs', [LanguageController::class, 'index']);
+        Route::get('/langs/{lang}', [LanguageController::class, 'show']);
+        Route::middleware([RequireAuth::class])->group(function () {
+            //Route CREATE
+            Route::post('/langs', [LanguageController::class, 'store']);
+            //Route UPDATE
+            Route::put('/langs/{lang}', [LanguageController::class, 'update']);
+            //Route DELETE
+            Route::delete('/langs/{lang}', [LanguageController::class, 'delete']);
+        });
+
+        /* -------- ROUTE TRADUZIONE ---------- */
+        Route::prefix('/translations')->group(function () {
+            //Route READ Traduzioni effettive
+            Route::get('/', [TranslationController::class, 'index']);
+            Route::get('/effective/{lang}', [TranslationController::class, 'indexByLanguage']);
+            Route::get('/effective/{lang}/{key}', [TranslationController::class, 'show']);
+
+            //Route READ tabelle
+            Route::get('/default', [TranslationController::class, 'indexDefault']);
+            Route::get('/default/{lang}/{key}', [TranslationController::class, 'showDefault']);
+            Route::get('/custom', [TranslationController::class, 'indexCustom']);
+            Route::get('/custom/{lang}/{key}', [TranslationController::class, 'showCustom']);
+
+            Route::middleware([RequireAuth::class])->group(function () {
+                //Route CREATE
+                Route::post('/default/{lang}', [TranslationController::class, 'createDefault']);
+                //Route UPDATE
+                Route::put('/default/{lang}/{key}', [TranslationController::class, 'updateDefault']);
+                //Route CREATE e UPDATE
+                Route::put('/custom/{lang}/{key}', [TranslationController::class, 'upsertCustom']);
+                //Route DELETE
+                Route::delete('/default/{lang}/{key}', [TranslationController::class, 'deleteDefault']);
+                Route::delete('/custom/{lang}/{key}', [TranslationController::class, 'deleteCustom']);
+            });
+        });
     });
 
     /* -------- PROTETTE DA BEARER TOKEN ---------- */

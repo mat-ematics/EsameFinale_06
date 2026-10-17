@@ -8,26 +8,42 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rules\Unique;
 use Throwable;
 
 use function Laravel\Prompts\error;
 
 class AppHelpers {
 
-    public static function updateRequestRules(array $rules) : array
+    public static function updateRequestRules(array $rules, int|string|null $ignoreId = null) : array
     {
-        $newRules = Arr::map($rules, function ($ruleset) {
-            if (is_array($ruleset)) 
-            {
-                return array_filter($ruleset, fn($r) => $r !== 'required');
-            } 
+        return Arr::map($rules, function ($ruleset) use ($ignoreId) {
+
+            // Oggetto Rule singolo non incapsulato in un array
+            if ($ruleset instanceof Unique) {
+                return $ignoreId !== null ? $ruleset->ignore($ignoreId) : $ruleset;
+            }
+
+            if (is_array($ruleset)) {
+                $ruleset = array_values(array_filter($ruleset, fn ($r) => $r !== 'required'));
+
+                if ($ignoreId !== null) {
+                    foreach ($ruleset as $rule) {
+                        if ($rule instanceof Unique) {
+                            $rule->ignore($ignoreId);
+                        }
+                    }
+                }
+
+                return $ruleset;
+            }
+
             if (is_string($ruleset)) {
-                return str_replace(['required|', '|required'], '', $ruleset);
+                return implode('|', array_filter(explode('|', $ruleset), fn ($r) => $r !== 'required'));
             }
 
             return $ruleset;
         });
-        return $newRules;
     }
 
     public static function generateSalt() : string
