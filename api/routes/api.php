@@ -4,6 +4,7 @@ use App\Helpers\AppHelpers;
 use App\Http\Controllers\api\v1\AuthController;
 use App\Http\Controllers\api\v1\CategoryController;
 use App\Http\Controllers\api\v1\ConfigController;
+use App\Http\Controllers\api\v1\ContinentController;
 use App\Http\Controllers\api\v1\EpisodeController;
 use App\Http\Controllers\api\v1\FilmController;
 use App\Http\Controllers\api\v1\LanguageController;
@@ -99,6 +100,20 @@ Route::prefix(_VERS)->group(function () {
                 Route::delete('/default/{lang}/{key}', [TranslationController::class, 'deleteDefault']);
                 Route::delete('/custom/{lang}/{key}', [TranslationController::class, 'deleteCustom']);
             });
+        });
+
+        /* -------- ROUTE CONTINENTI ---------- */
+        Route::prefix('/continents')->group(function () {
+            //Route READ Traduzioni effettive
+            Route::get('/', [ContinentController::class, 'index']);
+            Route::get('/{continent}', [ContinentController::class, 'show']);
+        });
+
+        /* -------- ROUTE NAZIONI ---------- */
+        Route::prefix('/countries')->group(function () {
+            //Route READ Traduzioni effettive
+            Route::get('/', [ContinentController::class, 'index']);
+            Route::get('/{country}', [ContinentController::class, 'show']);
         });
     });
 
