@@ -30,8 +30,6 @@ class FilmResource extends JsonResource
             $request = request();
         }
 
-        Log::alert('im running');
-
         return $this->getPublicColumns($request);
     }
 
