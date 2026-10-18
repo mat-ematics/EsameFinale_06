@@ -5,8 +5,12 @@ use App\Http\Controllers\api\v1\AuthController;
 use App\Http\Controllers\api\v1\CategoryController;
 use App\Http\Controllers\api\v1\ConfigController;
 use App\Http\Controllers\api\v1\ContinentController;
+use App\Http\Controllers\api\v1\CountryController;
 use App\Http\Controllers\api\v1\EpisodeController;
 use App\Http\Controllers\api\v1\FilmController;
+use App\Http\Controllers\api\v1\ItalianMunicipalityController;
+use App\Http\Controllers\api\v1\ItalianProvinceController;
+use App\Http\Controllers\api\v1\ItalianRegionController;
 use App\Http\Controllers\api\v1\LanguageController;
 use App\Http\Controllers\api\v1\ProfileController;
 use App\Http\Controllers\api\v1\TranslationController;
@@ -104,16 +108,37 @@ Route::prefix(_VERS)->group(function () {
 
         /* -------- ROUTE CONTINENTI ---------- */
         Route::prefix('/continents')->group(function () {
-            //Route READ Traduzioni effettive
+            //Route READ Continenti effettive
             Route::get('/', [ContinentController::class, 'index']);
             Route::get('/{continent}', [ContinentController::class, 'show']);
         });
 
         /* -------- ROUTE NAZIONI ---------- */
         Route::prefix('/countries')->group(function () {
-            //Route READ Traduzioni effettive
-            Route::get('/', [ContinentController::class, 'index']);
-            Route::get('/{country}', [ContinentController::class, 'show']);
+            //Route READ Nazioni effettive
+            Route::get('/', [CountryController::class, 'index']);
+            Route::get('/{country}', [CountryController::class, 'show']);
+        });
+
+        /* -------- ROUTE REGIONI (ITALIANE) ---------- */
+        Route::prefix('/italian-regions')->group(function () {
+            //Route READ Regioni effettive
+            Route::get('/', [ItalianRegionController::class, 'index']);
+            Route::get('/{region}', [ItalianRegionController::class, 'show']);
+        });
+
+        /* -------- ROUTE PROVINCE (ITALIANE) ---------- */
+        Route::prefix('/italian-provinces')->group(function () {
+            //Route READ Province effettive
+            Route::get('/', [ItalianProvinceController::class, 'index']);
+            Route::get('/{province}', [ItalianProvinceController::class, 'show']);
+        });
+
+        /* -------- ROUTE COMUNI (ITALIANI) ---------- */
+        Route::prefix('/italian-municipalities')->group(function () {
+            //Route READ Comuni effettive
+            Route::get('/', [ItalianMunicipalityController::class, 'index']);
+            Route::get('/{municipality}', [ItalianMunicipalityController::class, 'show']);
         });
     });
 

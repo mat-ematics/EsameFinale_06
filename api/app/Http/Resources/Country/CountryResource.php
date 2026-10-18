@@ -38,11 +38,12 @@ class CountryResource extends JsonResource
     {
         $data = $this->resource->getAttributes();
 
-        $data['continent'] = new ContinentResource($this->resource->continent, $this->isAdmin);
-
+        
         if (!$this->isAdmin) {
             $data = Arr::only($data, ['name', 'iso', 'iso3', 'phone_prefix']);
         }
+
+        $data['continent'] = new ContinentResource($this->resource->continent, $this->isAdmin);
 
         return $data;
     }
