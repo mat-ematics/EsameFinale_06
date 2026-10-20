@@ -2,7 +2,7 @@
 
 namespace App\Services\User;
 
-use App\Http\Resources\Address\AddressResource;
+use App\Http\Resources\User\Address\AddressResource;
 use App\Models\Location\Address;
 use App\Models\User\User;
 use Illuminate\Support\Arr;

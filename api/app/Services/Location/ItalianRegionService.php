@@ -3,8 +3,8 @@
 namespace App\Services\Location;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\ItalianRegion\ItalianRegionCollection;
-use App\Http\Resources\ItalianRegion\ItalianRegionResource;
+use App\Http\Resources\Location\ItalianRegion\ItalianRegionCollection;
+use App\Http\Resources\Location\ItalianRegion\ItalianRegionResource;
 use App\Models\Location\ItalianRegion;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;

@@ -2,8 +2,8 @@
 
 namespace App\Services\Media;
 
-use App\Http\Resources\TvSeries\TvSeriesCollection;
-use App\Http\Resources\TvSeries\TvSeriesResource;
+use App\Http\Resources\Media\TvSeries\TvSeriesCollection;
+use App\Http\Resources\Media\TvSeries\TvSeriesResource;
 use App\Models\File\File;
 use App\Models\Media\TvSeries;
 use App\Services\File\FilesService;

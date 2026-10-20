@@ -3,13 +3,12 @@
 namespace App\Services\Location;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\Continent\ContinentCollection;
-use App\Http\Resources\Continent\ContinentResource;
+use App\Http\Resources\Location\Continent\ContinentCollection;
+use App\Http\Resources\Location\Continent\ContinentResource;
 use App\Models\Location\Continent;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class ContinentService {
 

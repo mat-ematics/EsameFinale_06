@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Resources\Global;
+namespace App\Http\Resources\Global\Translation;
 
-use App\Http\Resources\Global\ConfigResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 

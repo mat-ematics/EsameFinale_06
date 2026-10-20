@@ -5,7 +5,7 @@ namespace App\Services\Authentication;
 use App\Enums\StateEnum;
 use App\Exceptions\InvalidCredentialsException;
 use App\Helpers\AppHelpers;
-use App\Http\Resources\User\UserResource;
+use App\Http\Resources\User\User\UserResource;
 use App\Models\Authentication\Access;
 use App\Models\Authentication\JwtSecret;
 use App\Models\Authentication\Session;
@@ -50,13 +50,6 @@ class AuthService {
         
         $user = User::getUserByUsername($username);
 
-        // if (!isset($user)) {
-        //     Log::alert('user does not exist');
-        // }
-
-        // if (!$user->currentPassword->checkPasswordLogin($password)) {
-        //     Log::alert('Password is wrong! Given: ' . $password . ' Actual: ' . $user->currentPassword->password);
-        // }
 
         if (!isset($user) || !$user->currentPassword->checkPasswordLogin($password)) {
             $access->addError();

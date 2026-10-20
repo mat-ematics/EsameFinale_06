@@ -1,24 +1,24 @@
 <?php
 
 use App\Helpers\AppHelpers;
-use App\Http\Controllers\api\v1\AuthController;
-use App\Http\Controllers\api\v1\CategoryController;
-use App\Http\Controllers\api\v1\ConfigController;
-use App\Http\Controllers\api\v1\ContinentController;
-use App\Http\Controllers\api\v1\CountryController;
-use App\Http\Controllers\api\v1\EpisodeController;
-use App\Http\Controllers\api\v1\FilmController;
-use App\Http\Controllers\api\v1\ItalianMunicipalityController;
-use App\Http\Controllers\api\v1\ItalianProvinceController;
-use App\Http\Controllers\api\v1\ItalianRegionController;
-use App\Http\Controllers\api\v1\LanguageController;
-use App\Http\Controllers\api\v1\PermissionController;
-use App\Http\Controllers\api\v1\ProfileController;
-use App\Http\Controllers\api\v1\RoleController;
-use App\Http\Controllers\api\v1\StateController;
-use App\Http\Controllers\api\v1\TranslationController;
-use App\Http\Controllers\api\v1\TvSeriesController;
-use App\Http\Controllers\api\v1\UserController;
+use App\Http\Controllers\api\v1\Authentication\AuthController;
+use App\Http\Controllers\api\v1\Media\CategoryController;
+use App\Http\Controllers\api\v1\Global\ConfigController;
+use App\Http\Controllers\api\v1\Location\ContinentController;
+use App\Http\Controllers\api\v1\Location\CountryController;
+use App\Http\Controllers\api\v1\Media\EpisodeController;
+use App\Http\Controllers\api\v1\Media\FilmController;
+use App\Http\Controllers\api\v1\Location\ItalianMunicipalityController;
+use App\Http\Controllers\api\v1\Location\ItalianProvinceController;
+use App\Http\Controllers\api\v1\Location\ItalianRegionController;
+use App\Http\Controllers\api\v1\Global\LanguageController;
+use App\Http\Controllers\api\v1\Authorization\PermissionController;
+use App\Http\Controllers\api\v1\User\UserProfileController;
+use App\Http\Controllers\api\v1\Authorization\RoleController;
+use App\Http\Controllers\api\v1\User\StateController;
+use App\Http\Controllers\api\v1\Global\TranslationController;
+use App\Http\Controllers\api\v1\Media\TvSeriesController;
+use App\Http\Controllers\api\v1\User\UserController;
 use App\Http\Middleware\ProtectLogin;
 use App\Http\Middleware\ProtectNewLogin;
 use App\Http\Middleware\RequireAuth;
@@ -215,16 +215,16 @@ Route::prefix(_VERS)->group(function () {
 
         /* -------- ROUTE PROFILO ---------- */
         
-        Route::get('/me', [ProfileController::class, 'showCurrentUser']);
-        Route::put('/me', [ProfileController::class, 'updateCurrentUser']);
-        Route::delete('/me', [ProfileController::class, 'destroyCurrentUser']);
+        Route::get('/me', [UserProfileController::class, 'showCurrentUser']);
+        Route::put('/me', [UserProfileController::class, 'updateCurrentUser']);
+        Route::delete('/me', [UserProfileController::class, 'destroyCurrentUser']);
         
         /* -------- ROUTE CREDITO ---------- */
 
         Route::prefix('/me')->group(function () {
-            Route::get('/credit', [ProfileController::class, 'showCredit']);
-            Route::put('/credit/add', [ProfileController::class, 'addCredit']);
-            Route::put('/credit/remove', [ProfileController::class, 'removeCredit']);
+            Route::get('/credit', [UserProfileController::class, 'showCredit']);
+            Route::put('/credit/add', [UserProfileController::class, 'addCredit']);
+            Route::put('/credit/remove', [UserProfileController::class, 'removeCredit']);
         });
 
         /* -------- ROUTE CATEGORIE ---------- */

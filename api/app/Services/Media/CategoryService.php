@@ -3,8 +3,8 @@
 namespace App\Services\Media;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\Category\CategoryCollection;
-use App\Http\Resources\Category\CategoryResource;
+use App\Http\Resources\Media\Category\CategoryCollection;
+use App\Http\Resources\Media\Category\CategoryResource;
 use App\Models\Media\Category;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;

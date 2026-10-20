@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources\Global\Language;
 
-use App\Models\Global\Language;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 

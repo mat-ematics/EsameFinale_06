@@ -2,8 +2,8 @@
 
 namespace App\Services\Media;
 
-use App\Http\Resources\Film\FilmCollection;
-use App\Http\Resources\Film\FilmResource;
+use App\Http\Resources\Media\Film\FilmCollection;
+use App\Http\Resources\Media\Film\FilmResource;
 use App\Models\File\File;
 use App\Models\Media\Film;
 use App\Services\File\FilesService;

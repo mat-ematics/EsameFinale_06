@@ -3,8 +3,8 @@
 namespace App\Services\Location;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\ItalianMunicipality\ItalianMunicipalityCollection;
-use App\Http\Resources\ItalianMunicipality\ItalianMunicipalityResource;
+use App\Http\Resources\Location\ItalianMunicipality\ItalianMunicipalityCollection;
+use App\Http\Resources\Location\ItalianMunicipality\ItalianMunicipalityResource;
 use App\Models\Location\ItalianMunicipality;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;

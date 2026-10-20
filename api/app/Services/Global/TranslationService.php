@@ -3,8 +3,8 @@
 namespace App\Services\Global;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\Global\TranslationResource;
-use App\Http\Resources\Global\TranslationCollection;
+use App\Http\Resources\Global\Translation\TranslationCollection;
+use App\Http\Resources\Global\Translation\TranslationResource;
 use App\Models\Global\CustomTranslation;
 use App\Models\Global\EffectiveTranslation;
 use App\Models\Global\Language;

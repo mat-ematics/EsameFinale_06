@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\Global;
+namespace App\Http\Resources\Global\Translation;
 
 use App\Http\Resources\Global\Language\LanguageResource;
 use Illuminate\Database\Eloquent\Model;

@@ -3,8 +3,8 @@
 namespace App\Services\Global;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\Global\ConfigResource;
-use App\Http\Resources\Global\ConfigCollection;
+use App\Http\Resources\Global\Config\ConfigCollection;
+use App\Http\Resources\Global\Config\ConfigResource;
 use App\Models\Global\Config;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;

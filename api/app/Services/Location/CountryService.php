@@ -3,13 +3,12 @@
 namespace App\Services\Location;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\Country\CountryCollection;
-use App\Http\Resources\Country\CountryResource;
+use App\Http\Resources\Location\Country\CountryCollection;
+use App\Http\Resources\Location\Country\CountryResource;
 use App\Models\Location\Country;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class CountryService {
 

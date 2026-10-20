@@ -2,15 +2,14 @@
 
 namespace App\Services\User;
 
-use App\Enums\StateEnum;
 use App\Helpers\AppHelpers;
-use App\Http\Resources\User\UserCollection;
-use App\Http\Resources\User\UserResource;
+use App\Enums\StateEnum;
+use App\Http\Resources\User\User\UserCollection;
+use App\Http\Resources\User\User\UserResource;
 use App\Models\Authorization\Role;
 use App\Models\User\User;
 use App\Models\User\UserProfile;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;

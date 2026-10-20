@@ -3,8 +3,8 @@
 namespace App\Services\Media;
 
 use App\Events\TvSeriesCountsChanged;
-use App\Http\Resources\Episode\EpisodeCollection;
-use App\Http\Resources\Episode\EpisodeResource;
+use App\Http\Resources\Media\Episode\EpisodeCollection;
+use App\Http\Resources\Media\Episode\EpisodeResource;
 use App\Models\File\File;
 use App\Models\Media\Episode;
 use App\Models\Media\TvSeries;

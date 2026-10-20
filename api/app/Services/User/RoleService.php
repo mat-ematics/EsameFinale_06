@@ -3,12 +3,10 @@
 namespace App\Services\Global;
 
 use App\Helpers\AppHelpers;
-use App\Http\Resources\Role\RoleCollection;
-use App\Http\Resources\Role\RoleResource;
+use App\Http\Resources\Authorization\Role\RoleCollection;
+use App\Http\Resources\Authorization\Role\RoleResource;
 use App\Models\Authorization\Role;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
