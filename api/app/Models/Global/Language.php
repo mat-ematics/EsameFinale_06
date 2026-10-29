@@ -23,7 +23,10 @@ class Language extends Model
 
     /* --------- METODI STATICI ---------*/
 
-    public static function getLanguage(string $key) :mixed {
-        return static::where('key', $key)->value('value');
+    public static function getLanguage(string $lang) :mixed {
+        return static::where('name', $lang)
+            ->orWhere('abbreviation', $lang)
+            ->orWhere('locale', $lang)
+            ->first();
     }
 }

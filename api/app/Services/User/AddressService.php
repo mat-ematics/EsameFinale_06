@@ -30,12 +30,12 @@ class AddressService {
             $address = Address::create([
                 'user_id' => $user->id,
                 'country_id' => $data['country_id'],
-                'italian_municipality_id'  => $data['italian_municipality_id'],
-                'cap'  => $data['cap'],
-                'street_address'  => $data['street_address'],
-                'house_number'  => $data['house_number'],
-                'locality'  => $data['locality'],
-                'additional_info'  => $data['additional_info'],
+                'italian_municipality_id' => $data['italian_municipality_id'] ?? null,
+                'cap' => $data['cap'],
+                'street_address' => $data['street_address'],
+                'house_number' => $data['house_number'],
+                'locality' => $data['locality'] ?? null,
+                'additional_info' => $data['additional_info'] ?? null,
             ]);
 
             return $address;

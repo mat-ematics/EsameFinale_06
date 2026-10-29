@@ -23,4 +23,13 @@ class Country extends Model
     {
         return $this->belongsTo(Continent::class);
     }
+
+    /* --------- METODI STATICI ---------*/
+
+    public static function getCountry(string $country) :mixed {
+        return static::where('name', $country)
+            ->orWhere('iso', $country)
+            ->orWhere('iso3', $country)
+            ->first();
+    }
 }

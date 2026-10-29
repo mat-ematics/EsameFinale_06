@@ -15,9 +15,18 @@ class State extends Model
     ];
 
     /* --------- RELAZIONI ---------*/
-
+    
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    /* --------- METODI STATICI ---------*/
+
+    public static function getState(string $state) : ?self 
+    {
+        return static::where('name', $state)
+            ->orWhere('label', $state)
+            ->first();
     }
 }

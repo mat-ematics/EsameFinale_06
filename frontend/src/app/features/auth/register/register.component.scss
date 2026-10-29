@@ -1,0 +1,26 @@
+@use 'variables' as var;
+
+main {
+    background: linear-gradient(rgba(0, 0, 0, .7), rgba(0, 0, 0, .7)),
+                url("/media/images/register_background_banner.jpg");
+    background-size: cover;
+    background-position: 50% 50%;
+}
+
+#formRegister {
+    width: 95%;
+
+    @media screen and (min-width: 768px)  { width: 80%; }
+    @media screen and (min-width: 1200px) { width: 50%; }
+}
+
+.input-group-credit {
+    .form-control, .form-select { min-width: 0; }
+    .form-control { flex: 4 1 0%; }
+    .form-select {
+        flex: 1 1 0%;
+        max-width: 90px;
+        margin-left: 0 !important;
+        border-left: var.$border-input-group-divider !important;
+    }
+}

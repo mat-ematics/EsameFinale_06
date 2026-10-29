@@ -124,7 +124,7 @@ class User extends Authenticatable
         return StateEnum::from($this->state->name);
     }
 
-    public function setState(StateEnum $state, Carbon|int|null $untilTimestamp = null)
+    public function setState(StateEnum $state, Carbon|int|string|null $untilTimestamp = null)
     {
         $stateId = State::where('name', $state->value)->value('id');
 
@@ -143,14 +143,14 @@ class User extends Authenticatable
 
     public function getOrCreateCredit() : Credit
     {
-        return $this->credit ?? $this->credit()->create(['value' => 0]);
+        return $this->credit ?? $this->credit()->create(['count' => 0]);
     }
 
     /* --------- METODI STATICI ---------*/
 
     public static function getUser(int $id, bool $withTrashed = false) : ?self 
     {
-        return $withTrashed ? static::withTrashed()->find($id) : static::all()->find($id);
+        return ($withTrashed ? static::withTrashed() : static::query())->findOrFail($id);
     }
 
     public static function getUserByUsername(string $username) : ?self
@@ -167,5 +167,9 @@ class User extends Authenticatable
     public static function getUsernameHash(?string $username) : ?string
     {
         return $username ? hash('sha256', $username) : null;
+    }
+
+    public static function usernameIsTaken(string $username) : bool {
+        return static::withTrashed()->where('username', static::getUsernameHash($username))->exists();
     }
 }

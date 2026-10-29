@@ -25,12 +25,12 @@ class ItalianMunicipalityController extends Controller
      */
     public function index()
     {
-        $municipality = $this->municipalityService->getItalianMunicipalityCollectionInfo(ItalianMunicipality::all(), Gate::check('isAdmin'));
-        if (empty($municipality))
-        {
-            $municipality = 'There are no Municipalities Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Municipalities Successfully Retrieved', 200, $municipality);
+        $municipalities = $this->municipalityService->getItalianMunicipalityCollectionInfo(ItalianMunicipality::all(), Gate::check('isAdmin'));
+        return AppHelpers::jsonResponse(
+            empty($municipalities) ? 'Municipalities Successfully Retrieved!' : "There are no Municipalities present at the moment",
+            200, 
+            $municipalities ?: [],
+        );
     }
 
 
@@ -47,16 +47,9 @@ class ItalianMunicipalityController extends Controller
      */
     public function show(int|string $municipality)
     {
-         if (ctype_digit((string) $municipality)) {
-            $municipalityRecord = ItalianMunicipality::find((int) $municipality);
-        } else {
-            $municipalityRecord = ItalianMunicipality::getItalianMunicipality($municipality);
-        }
-        if (!$municipalityRecord) {
-            return AppHelpers::jsonResponse('Municipality Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(ItalianMunicipality::class, $municipality, 'getMunicipality');
 
-        $municipalityResource = $this->municipalityService->getItalianMunicipalityInfo($municipalityRecord, Gate::check('isAdmin'));
+        $municipalityResource = $this->municipalityService->getItalianMunicipalityInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('Municipality Successfully Retrieved', 200, $municipalityResource);
     }
 

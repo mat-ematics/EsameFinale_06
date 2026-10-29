@@ -1,0 +1,34 @@
+/* --- IMPORTS ---  */
+@use 'sass:color';
+
+/* --- CUSTOM COLORS ---  */
+
+/* Background */
+$bg-dark-custom: #181818;
+$header-bg-dark-custom: #212121;
+$footer-bg-dark-custom: $header-bg-dark-custom; //Same as Header
+/* Text */
+$text-secondary-color: rgb(108,117,125);
+$required-color: red;
+/* Brand */
+$brand-color: #ff0066;
+$brand-color-dark: color.adjust($brand-color, $lightness: -10%); //Darken by 10%
+$brand-color-secondary: #efb7d2;
+/* Placeholder */
+$placeholder-color: #acafb2;
+
+/* --- SIZES --- */
+
+/* Text Sizes */
+$font-size-small: 13px;
+$font-size-big: 60px;
+
+/* --- BORDER --- */
+$border-input-group-divider: 1px solid rgba(255, 255, 255, 0.08);
+
+/* --- BOOTSTRAP --- */
+
+/* Focus Ring */
+$focus-ring-brand-color: color.scale($brand-color, $lightness: 20%);
+$focus-ring-brand-border: $brand-color;
+$focus-ring-brand-shadow: 0 0 0 .25rem rgba($focus-ring-brand-color, .25);

@@ -28,4 +28,12 @@ class ItalianMunicipality extends Model
     {
         return $this->hasMany(Address::class);
     }
+
+    /* --------- METODI STATICI ---------*/
+
+    public static function getMunicipality(string $municipality) :mixed {
+        return static::where('catastal_code', $municipality)
+            ->orWhere('name', $municipality)
+            ->first();
+    }
 }

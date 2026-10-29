@@ -8,11 +8,7 @@ use App\Http\Requests\Media\Category\CategoryStoreRequest;
 use App\Http\Requests\Media\Category\CategoryUpdateRequest;
 use App\Models\Media\Category;
 use App\Services\Media\CategoryService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class CategoryController extends Controller
 {
@@ -31,12 +27,16 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = $this->categoryService->getCategoryCollectionInfo(Category::all(), Gate::check('isAdmin'));
-        if (empty($categories))
-        {
-            $categories = 'There are no Categories Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Categories Successfully Retrieved', 200, $categories);
+        $categories = $this->categoryService->getCategoryCollectionInfo(
+            Category::all(),
+            Gate::check('isAdmin')
+        );
+
+        return AppHelpers::jsonResponse(
+            empty($categories) ? 'There are no Categories at the moment' : 'Categories Successfully Retrieved',
+            200,
+            $categories ?: []
+        );
     }
 
     /**
@@ -44,16 +44,8 @@ class CategoryController extends Controller
      */
     public function store(CategoryStoreRequest $request)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $category = $this->categoryService->createCategory($request->validated());
-                return AppHelpers::jsonResponse('Category Successfully Created', 201, $category);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $category = $this->categoryService->createCategory($request->validated());
+        return AppHelpers::jsonResponse('Category Successfully Created', 201, $category);
     }
 
     /**
@@ -61,17 +53,11 @@ class CategoryController extends Controller
      */
     public function show(int|string $category)
     {
-        if (ctype_digit((string) $category)) {
-            $categoryRecord = Category::find((int) $category);
-        } else {
-            $categoryRecord = Category::getCategory($category);
-        }
-        if (!$categoryRecord) {
-            return AppHelpers::jsonResponse('Category Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(Category::class, $category, 'getCategory');
 
-        $categoryResource = $this->categoryService->getCategoryInfo($categoryRecord, Gate::check('isAdmin'));
-        return AppHelpers::jsonResponse('Category Successfully Retrieved', 200, $categoryResource);
+        $resource = $this->categoryService->getCategoryInfo($record, Gate::check('isAdmin'));
+        return AppHelpers::jsonResponse('Category Successfully Retrieved', 200, $resource);
+
     }
 
     /**
@@ -79,30 +65,10 @@ class CategoryController extends Controller
      */
     public function update(CategoryUpdateRequest $request, int|string $category)
     {
-        if (Gate::allows('isAdmin')) {
+        $record = AppHelpers::findByKey(Category::class, $category, 'getCategory');
 
-            $data = $request->validated();
-            
-            try {
-                //Ricerca su ID/Nome o Label
-                if (ctype_digit((string) $category)) {
-                    $categoryRecord = Category::find((int) $category);
-                } else {
-                    $categoryRecord = Category::getCategory($category);
-                }
-
-                if (!$categoryRecord) {
-                    throw new HttpException(404, 'Category Not Found');
-                }
-
-                $updatedCategory = $this->categoryService->updateCategory($categoryRecord, $data);
-                return AppHelpers::jsonResponse('Category Successfully Updated', 200, $updatedCategory);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $updated = $this->categoryService->updateCategory($record, $request->validated());
+        return AppHelpers::jsonResponse('Category Successfully Updated', 200, $updated);
     }
 
     /**
@@ -110,26 +76,9 @@ class CategoryController extends Controller
      */
     public function destroy(int|string $category)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                 //Ricerca su ID/Nome o Label
-                if (ctype_digit((string) $category)) {
-                    $categoryRecord = Category::find((int) $category);
-                } else {
-                    $categoryRecord = Category::getCategory($category);
-                }
-                
-                if (!$categoryRecord) {
-                    throw new HttpException(404, 'Category Not Found');
-                }
+        $record = AppHelpers::findByKey(Category::class, $category, 'getCategory');
 
-                $this->categoryService->deleteCategory($categoryRecord);
-                return AppHelpers::jsonResponse('Category Successfully Deleted', 204);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $this->categoryService->deleteCategory($record);
+        return AppHelpers::jsonResponse('Category Successfully Deleted', 200);
     }
 }

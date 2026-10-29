@@ -25,12 +25,12 @@ class CountryController extends Controller
      */
     public function index()
     {
-        $country = $this->countryService->getCountryCollectionInfo(Country::all(), Gate::check('isAdmin'));
-        if (empty($country))
-        {
-            $country = 'There are no Countries Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Countries Successfully Retrieved', 200, $country);
+        $countries = $this->countryService->getCountryCollectionInfo(Country::all(), Gate::check('isAdmin'));
+        return AppHelpers::jsonResponse(
+            empty($countries) ? 'Countries Successfully Retrieved!' : "There are no Countries present at the moment",
+            200, 
+            $countries ?: [],
+        );
     }
 
 
@@ -47,16 +47,9 @@ class CountryController extends Controller
      */
     public function show(int|string $country)
     {
-         if (ctype_digit((string) $country)) {
-            $countryRecord = Country::find((int) $country);
-        } else {
-            $countryRecord = Country::getCountry($country);
-        }
-        if (!$countryRecord) {
-            return AppHelpers::jsonResponse('Country Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(Country::class, $country, 'getCountry');
 
-        $countryResource = $this->countryService->getCountryInfo($countryRecord, Gate::check('isAdmin'));
+        $countryResource = $this->countryService->getCountryInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('Country Successfully Retrieved', 200, $countryResource);
     }
 

@@ -20,10 +20,7 @@ class RequireAuth
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check()) {
-            return AppHelpers::jsonResponse('Missing Token!', 401);
-        }
-
+        abort_unless(Auth::check(), 401, 'Missing Token!');
         return $next($request);
     }
 }

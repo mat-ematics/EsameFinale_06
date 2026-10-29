@@ -80,7 +80,7 @@ class UserService {
             if (!isset($data['role']) && empty($data['role'])) {
                 $data['role'] = 'user';
             }
-            $this->assignRolesToUser($newUser, $data['role']);
+            $this->assignRolesToUser($newUser, $data['role'] ?? User::USER);
 
             //Creazione Record Credito
             $newUser->credit()->create(['count' => $data['credit']]);
@@ -94,22 +94,20 @@ class UserService {
 
     public function assignRolesToUser(User $user, string $role) : bool 
     {
-        $roles = [];
+        $names = match ($role) {
+            User::ADMIN => [User::ADMIN, User::USER, User::GUEST],
+            User::USER  => [User::USER, User::GUEST],
+            User::GUEST => [User::GUEST],
+            default     => abort(400, 'Invalid User Role'),
+        };
 
-        switch ($role) {
-            case 'admin':
-                $roles[] = Role::getRoleId(User::ADMIN);
-            case 'user':
-                $roles[] = Role::getRoleId(User::USER);
-            case 'guest':
-                $roles[] = Role::getRoleId(User::GUEST);
-                break;
-            default:
-                throw new HttpException('Invalid User Role', 400);
-                break;
+        $ids = array_map(fn ($name) => Role::getRoleId($name), $names);
+
+        if (in_array(null, $ids, true)) {
+            throw new \RuntimeException('A default role is missing from the roles table');   // a seeding problem: 500, logged
         }
 
-        $user->roles()->sync($roles);
+        $user->roles()->sync($ids);
         return true;
     }
 
@@ -118,7 +116,7 @@ class UserService {
      */
     public function updateUser(User $user, array $data, ?int $currUserId = null) : UserResource
     {
-        $data = array_filter($data);
+        $data = array_filter($data, fn ($v) => $v !== null);
     
         //Aggiorna Username se presente
         if (!empty($data['username'])) {
@@ -154,12 +152,12 @@ class UserService {
         $user->setState(StateEnum::Banned);
     }
 
-    public function suspendUser(User $user, Carbon|int $until)
+    public function suspendUser(User $user, Carbon|int|string $until)
     {
         $user->setState(StateEnum::Suspended, $until);
     }
 
-    public function lockUser(User $user, Carbon|int|null $until = null)
+    public function lockUser(User $user, Carbon|int|string|null $until = null)
     {
         $user->setState(StateEnum::Locked, $until);
     }

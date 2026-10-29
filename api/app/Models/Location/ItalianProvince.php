@@ -28,4 +28,12 @@ class ItalianProvince extends Model
     {
         return $this->hasMany(ItalianMunicipality::class);
     }
+
+    /* --------- METODI STATICI ---------*/
+
+    public static function getProvince(string $province) :mixed {
+        return static::where('name', $province)
+            ->orWhere('code', $province)
+            ->first();
+    }
 }

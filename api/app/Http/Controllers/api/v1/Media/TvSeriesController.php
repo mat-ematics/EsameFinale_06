@@ -11,8 +11,6 @@ use App\Models\Media\TvSeries;
 use App\Services\Media\TvSeriesService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TvSeriesController extends Controller
 {
@@ -23,7 +21,7 @@ class TvSeriesController extends Controller
      * Inizializzatore dei Servizi
      */
     public function __construct(TvSeriesService $tvSeriesService)
-    {
+    {   
         $this->tvSeriesService = $tvSeriesService;
     }
 
@@ -34,18 +32,20 @@ class TvSeriesController extends Controller
     public function index(Request $request)
     {
         $isAdmin = Gate::check('isAdmin');
-        $name = $request->query('name');
-        $category = $request->query('category');
-        $year = $request->query('year');
 
-        $tvSeriesRecords = TvSeries::getTvSeriesWithFilters($name, $category, (int) $year, $isAdmin);
-        $tvSeries = $this->tvSeriesService->getTvSeriesCollectionInfo($tvSeriesRecords, $isAdmin);
+        $records = TvSeries::getTvSeriesWithFilters(
+            $request->query('name'),
+            $request->query('category'),
+            (int) $request->query('year'),
+            $isAdmin
+        );
+        $tvSeries = $this->tvSeriesService->getTvSeriesCollectionInfo($records, $isAdmin);
 
-        if (empty($tvSeries))
-        {
-            $tvSeries = 'There are no TV Series Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Tv Series Successfully Retrieved', 200, $tvSeries);
+        return AppHelpers::jsonResponse(
+            empty($tvSeries) ? 'There are no TV Series at the moment' : 'TV Series Successfully Retrieved',
+            200,
+            $tvSeries ?: []
+        );
     }
 
     /**
@@ -53,18 +53,10 @@ class TvSeriesController extends Controller
      */
     public function store(TvSeriesStoreRequest $request)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $uploadedFiles = collect($request->file('files'));
-                $tvSeries = $this->tvSeriesService->createTvSeries($request->validated(), $uploadedFiles->all());
+        $files    = collect($request->file('files'))->all();
+        $tvSeries = $this->tvSeriesService->createTvSeries($request->validated(), $files);
 
-                return AppHelpers::jsonResponse('Tv Series Successfully Created', 201, $tvSeries);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        return AppHelpers::jsonResponse('TV Series Successfully Created', 201, $tvSeries);
     }
 
     /**
@@ -73,13 +65,10 @@ class TvSeriesController extends Controller
     public function show(int $tvSeriesId)
     {
         $isAdmin = Gate::check('isAdmin');
+        $record  = TvSeries::findSeries($tvSeriesId, $isAdmin);
 
-        $tvSeriesRecord = $isAdmin ? TvSeries::withTrashed()->find($tvSeriesId) : TvSeries::find($tvSeriesId);
-
-        if (!$tvSeriesRecord) return AppHelpers::jsonResponse('TV Series Not Found', 404);
-
-        $tvSeriesResource = $this->tvSeriesService->getTvSeriesInfo($tvSeriesRecord, $isAdmin);
-        return AppHelpers::jsonResponse('TV Series Successfully Retrieved', 200, $tvSeriesResource);
+        $resource = $this->tvSeriesService->getTvSeriesInfo($record, $isAdmin);
+        return AppHelpers::jsonResponse('TV Series Successfully Retrieved', 200, $resource);
     }
 
     /**
@@ -87,31 +76,16 @@ class TvSeriesController extends Controller
      */
     public function update(TvSeriesUpdateRequest $request, int $tvSeriesId)
     {
-        if (Gate::allows('isAdmin')) {
+        $record = TvSeries::findSeries($tvSeriesId, Gate::check('isAdmin'));
+        $data = $request->validated();
 
-            $data = $request->validated();
+        MediaFileRulesHelper::checkRoleValidity($record, $data['files_meta']);
 
-            try {
-                //Ricerca su ID/Nome o Label
-                $tvSeriesRecord = tvSeries::withTrashed()->find($tvSeriesId);
+        $labels = AppHelpers::extractColumnFromArray($data['files_meta'], 'label');
+        $files  = $record->getManyFilesByLabels($labels);
 
-                if (!$tvSeriesRecord) {
-                    throw new HttpException(404, 'Tv Series Not Found');
-                }
-
-                MediaFileRulesHelper::checkRoleValidity($tvSeriesRecord, $data['files_meta']);
-
-                $labels = AppHelpers::extractColumnFromArray($data['files_meta'], 'label');
-                $files = $tvSeriesRecord->getManyFilesByLabels($labels);
-
-                $updatedtvSeries = $this->tvSeriesService->updateTvSeries($tvSeriesRecord, $data, $files);
-                return AppHelpers::jsonResponse('Tv Series Successfully Updated', 200, $updatedtvSeries);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $updated = $this->tvSeriesService->updateTvSeries($record, $data, $files);
+        return AppHelpers::jsonResponse('TV Series Successfully Updated', 200, $updated);
     }
 
     /**
@@ -119,76 +93,28 @@ class TvSeriesController extends Controller
      */
     public function destroy(int $tvSeriesId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                 //Ricerca su ID/Nome o Label
-                $tvSeriesRecord = tvSeries::withTrashed()->find($tvSeriesId);
-                
-                if (!$tvSeriesRecord) {
-                    throw new HttpException(404, 'Tv Series Not Found');
-                }
+        $record = TvSeries::findSeries($tvSeriesId);
+        abort_if($record->trashed(), 409, 'The Selected TV Series is already Deleted');
 
-                if ($tvSeriesRecord->trashed()) {
-                    throw new HttpException(400, 'The Selected Tv Series is already Deleted');
-                }
-
-                $this->tvSeriesService->deleteTvSeries($tvSeriesRecord);
-                return AppHelpers::jsonResponse('TvSeries Successfully Deleted', 204);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $this->tvSeriesService->deleteTvSeries($record);
+        return AppHelpers::jsonResponse('TV Series Successfully Deleted', 200);
     }
 
     public function restore(int $tvSeriesId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                //Ricerca su ID/Nome o Label
-                $tvSeriesRecord = tvSeries::withTrashed()->find($tvSeriesId);
+        $record = TvSeries::findSeries($tvSeriesId, true);
+        abort_unless($record->trashed(), 409, 'TV Series is Not Deleted');
 
-                if (!$tvSeriesRecord) {
-                    throw new HttpException(404, 'TV Series Not Found');
-                }
-
-                if (!$tvSeriesRecord->trashed()) {
-                    throw new HttpException(400, 'TV Series is Not Deleted');
-                }
-
-                $tvSeriesResource = $this->tvSeriesService->restoretvSeries($tvSeriesRecord);
-                return AppHelpers::jsonResponse('TV Series Successfully Restored', 200, $tvSeriesResource);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $resource = $this->tvSeriesService->restoreTvSeries($record);
+        return AppHelpers::jsonResponse('TV Series Successfully Restored', 200, $resource);
     }
 
     public function forceDestroy(int $tvSeriesId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                //Ricerca su ID/Nome o Label
-                $tvSeriesRecord = TvSeries::withTrashed()->find($tvSeriesId);
+        $record = TvSeries::findSeries($tvSeriesId);
+        abort_unless($record->trashed(), 409, 'TV Series is Not (Soft) Deleted');
 
-                if (!$tvSeriesRecord) {
-                    throw new HttpException(404, 'TV Series Not Found');
-                }
-
-                if (!$tvSeriesRecord->trashed()) {
-                    throw new HttpException(400, 'TV Series is Not (Soft) Deleted');
-                }
-
-                $this->tvSeriesService->forceDeletetvSeries($tvSeriesRecord);
-                return AppHelpers::jsonResponse('TV Series has been Permanently Deleted', 204);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $this->tvSeriesService->forceDeleteTvSeries($record);
+        return AppHelpers::jsonResponse('TV Series has been Permanently Deleted', 200);
     }
 }

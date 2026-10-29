@@ -75,11 +75,11 @@ class JwtService {
     public function validateToken(string $token) :?bool {
         //Controllo Token
         try {
-            $tkPayload = $this->decodeJWTPayload($token);
-            $jti = $tkPayload['jti'];
+            $unverified = $this->decodeJWTPayload($token);
+            $jti = $unverified['jti'] ?? null;
 
             //Controllo della Corretta traduzione del Payload
-            if (!$tkPayload || !$jti) {
+            if (!$jti) {
                 throw new Exception('Malformed Token Payload');
             }
 
@@ -97,29 +97,29 @@ class JwtService {
                 throw new Exception('SecretJWT Not Found');
             }
 
+            JWT::$leeway = 10;
             //Decodifica e Verifica del Token con Secret
             $payload = JWT::decode($token, new Key($secretJWT, 'HS256'));
 
             //Controllo Scadenza del Token
             $currTime = now();
-            if (
-                    $session->user_id !== $tkPayload['sub'] 
-                    ||
-                    $currTime->lessThan($session->issued_at)
-                    ||
-                    $currTime->greaterThan($session->expires_at)
-                ) 
-                {
-                    throw new \Exception ('Inconsistent Token Database Header');
+            if ((int) $payload->sub !== (int) $session->user_id) {
+                throw new Exception ('Subject mismatch');
+            }
+            if ($payload->iss !== config('app.url')) {
+                throw new Exception ('Wrong issuer');
+            }
+            if ($payload->expires_at->isPast()) {
+                throw new Exception ('Session expired');
             }
 
-            if ($session->revoked == 1) {
-                throw new \Exception ('Token Revoked');
+            if ($session->revoked_at !== null) {
+                throw new Exception ('Token Revoked');
             }
 
             return true;
         } catch (\Throwable $th) {
-            if (app()->environment('testing')) Log::error($th->getMessage());
+            Log::info('JWT rejected: ' . $th->getMessage());
             return false;
         }
     }

@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -15,9 +16,18 @@ use function Laravel\Prompts\error;
 
 class AppHelpers {
 
-    public static function updateRequestRules(array $rules, int|string|null $ignoreId = null) : array
+    public static function updateRequestRules(
+        array $rules,
+        int|string|null $ignoreId = null,
+        array $keepRequired = [],
+    ) : array
     {
-        return Arr::map($rules, function ($ruleset) use ($ignoreId) {
+        return Arr::map($rules, function ($ruleset, $key) use ($ignoreId, $keepRequired) {
+
+            // I campi in $keepRequired mantengono il loro ruleset invariato
+            if (in_array($key, $keepRequired)) {
+                return $ruleset;
+            }
 
             // Oggetto Rule singolo non incapsulato in un array
             if ($ruleset instanceof Unique) {
@@ -70,6 +80,9 @@ class AppHelpers {
 
     public static function jsonResponse(string $message, int $status = 200, mixed $extra = []) : \Illuminate\Http\JsonResponse
     {
+        //controlla se ha extra passati
+        $hasData = func_num_args() >= 3;
+
         if (!is_array($extra)) {
             try {
                 $extra = Arr::from($extra);
@@ -78,13 +91,11 @@ class AppHelpers {
             }
         }
 
-        // Log::alert('extra: ' . print_r($extra, true));
-
         $msg = ($status >= 400 && $status < 600) 
             ? ['error' => $message]
             : ['message' => $message];
 
-        $extraArr = $extra ? ['data' => $extra] : [];
+        $extraArr = $hasData ? ['data' => $extra] : [];
 
         return response()->json(array_merge($msg, $extraArr), $status);
     }
@@ -169,5 +180,18 @@ class AppHelpers {
     public static function countValuesInArray(array $array) : array
     {
         return array_count_values($array);
+    }
+
+    /**
+     * Trova un record tramite ID numerico o per nome/label utilizzando il motore di ricerca statico del modello stesso.
+     * Genera un'eccezione ModelNotFoundException, che il gestore globale trasforma in "<Model> Not Found" (404).
+     */
+    public static function findByKey(string $model, int|string $key, string $byName)
+    {
+        $record = ctype_digit((string) $key)
+            ? $model::find((int) $key)
+            : $model::$byName($key);
+
+        return $record ?? throw (new ModelNotFoundException())->setModel($model);
     }
 }

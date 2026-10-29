@@ -8,10 +8,7 @@ use App\Http\Requests\Global\Config\ConfigUpdateRequest;
 use App\Models\Global\Config;
 use App\Services\Global\ConfigService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class ConfigController extends Controller
 {
@@ -32,7 +29,11 @@ class ConfigController extends Controller
     public function index()
     {
         $configs = $this->configService->getConfigCollectionInfo(Config::all(), Gate::check('isAdmin'));
-        return AppHelpers::jsonResponse('Configs successfully retrieved!', 200, $configs);
+        return AppHelpers::jsonResponse(
+            empty($configs) ? 'Configs successfully retrieved!' : "There are no Configs present at the moment",
+            200, 
+            $configs ?: []
+        );
     }
 
     /**
@@ -48,16 +49,9 @@ class ConfigController extends Controller
      */
     public function show(string|int $config)
     {
-        if (ctype_digit((string) $config)) {
-            $configRecord = Config::find((int) $config);
-        } else {
-            $configRecord = Config::getConfig($config);
-        }
-        if (!$configRecord) {
-            return AppHelpers::jsonResponse('Config Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(Config::class, $config, 'getConfig');
 
-        $configResource = $this->configService->getConfigInfo($configRecord, Gate::check('isAdmin'));
+        $configResource = $this->configService->getConfigInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('Config Successfully Retrieved', 200, $configResource);
     }
 
@@ -66,31 +60,10 @@ class ConfigController extends Controller
      */
     public function update(ConfigUpdateRequest $request, int|string $config)
     {
-        if (Gate::allows('isAdmin')) {
+        $record = AppHelpers::findByKey(Config::class, $config, 'getConfig');
 
-            $data = $request->validated();
-            
-            try {
-                //Ricerca su ID/Nome o Label
-                if (ctype_digit((string) $config)) {
-                    $configRecord = Config::find((int) $config);
-                } else {
-                    $configRecord = Config::getModelByConfig($config);
-                    Log::alert($configRecord);
-                }
-
-                if (!$configRecord) {
-                    throw new HttpException(404, 'Config Not Found');
-                }
-
-                $updatedconfig = $this->configService->updateConfig($configRecord, $data);
-                return AppHelpers::jsonResponse('Config Successfully Updated', 200, $updatedconfig);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $updatedConfig = $this->configService->updateConfig($record, $request->validated());
+        return AppHelpers::jsonResponse('Config Successfully Updated', 200, $updatedConfig);
     }
 
     /**

@@ -27,12 +27,11 @@ class Password extends Model
 
     public function checkPassword(#[\SensitiveParameter] string $password) : bool
     {
-       return hash_equals($this->password, Password::getPasswordHashDouble($password, $this->salt));
+       return self::hashEquals($this->password, Password::getPasswordHashDouble($password, $this->salt));
     }
 
     public function checkPasswordLogin(string $passwordHash) : bool {
-        // return $this->password === $passwordHash;
-        return hash_equals($this->password, $passwordHash);
+        return self::hashEquals($this->password, $passwordHash);
     }
 
     /* --------- METODI STATICI ---------*/
@@ -56,5 +55,10 @@ class Password extends Model
             throw new \InvalidArgumentException('Password cannot be empty');
         }
         return static::getPasswordHash(static::getPasswordHash($password), $salt);
+    }
+
+    public static function hashEquals(string $actual, string $checked) : bool
+    {
+       return hash_equals($actual, $checked);
     }
 }

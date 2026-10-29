@@ -33,7 +33,7 @@ class TranslationService {
         return match ($type) {
             self::DEFAULT => Translation::class,
             self::CUSTOM => CustomTranslation::class,
-            default => throw new HttpException(400, 'Invalid translation type'),
+            default => abort(400, 'Invalid translation type'),
         };
     }
  
@@ -59,7 +59,7 @@ class TranslationService {
             : Language::getLanguage($lang);
  
         if (!$record) {
-            throw new HttpException(404, 'Language Not Found');
+            abort(404, 'Language Not Found');
         }
  
         return $record;
@@ -113,7 +113,7 @@ class TranslationService {
         $translation = $this->findTranslation($type, $lang, $key);
  
         if (!$translation) {
-            throw new HttpException(404, 'Translation Not Found');
+            abort(404, 'Translation Not Found');
         }
  
         return $translation;
@@ -136,7 +136,7 @@ class TranslationService {
                 ->exists();
  
             if ($exists) {
-                throw new HttpException(409, 'Translation Already Exists');
+                abort(409, 'Translation Already Exists');
             }
  
             return $model::create([

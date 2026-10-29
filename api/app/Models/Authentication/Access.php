@@ -63,7 +63,7 @@ class Access extends Model
         );
     }
 
-    public function hasActiveAttempt(null|int|string $attemptDuration = null) : bool
+    public function attemptWindowExpired(null|int|string $attemptDuration = null) : bool
     {
         return !AppHelpers::isInFutureAfter(
             $this->attempt_start_at,

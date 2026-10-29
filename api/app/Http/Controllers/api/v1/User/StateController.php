@@ -9,8 +9,6 @@ use App\Models\User\State;
 use App\Services\Global\StateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Symfony\Component\HttpKernel\Exception\HttpException;
-use Throwable;
 
 class StateController extends Controller
 {
@@ -29,11 +27,12 @@ class StateController extends Controller
     public function index()
     {
         $state = $this->stateService->getStateCollectionInfo(State::all(), Gate::check('isAdmin'));
-        if (empty($state))
-        {
-            $state = 'There are no States Present at the moment';
-        }
-        return AppHelpers::jsonResponse('States Successfully Retrieved', 200, $state);
+
+        return AppHelpers::jsonResponse(
+            empty($state) ? 'States Successfully Retrieved' : 'There are no States Present at the moment',
+            200,
+            $state ?: [],
+        );
     }
 
 
@@ -50,16 +49,9 @@ class StateController extends Controller
      */
     public function show(int|string $state)
     {
-        if (ctype_digit((string) $state)) {
-            $stateRecord = State::find((int) $state);
-        } else {
-            $stateRecord = State::getState($state);
-        }
-        if (!$stateRecord) {
-            return AppHelpers::jsonResponse('State Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(State::class, $state, 'getState');
 
-        $stateResource = $this->stateService->getStateInfo($stateRecord, Gate::check('isAdmin'));
+        $stateResource = $this->stateService->getStateInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('State Successfully Retrieved', 200, $stateResource);
     }
 
@@ -68,24 +60,10 @@ class StateController extends Controller
      */
     public function update(StateUpdateRequest $request, int|string $state)
     {
-        if (Gate::denies('isAdmin')) {
-            return AppHelpers::jsonResponseForbidden();
-        }
-        try {
-            if (ctype_digit((string) $state)) {
-                $stateRecord = State::find((int) $state);
-            } else {
-                $stateRecord = State::getState($state);
-            }
-            if (!$stateRecord) {
-                throw new HttpException(404, 'State Not Found');
-            }
+        $record = AppHelpers::findByKey(State::class, $state, 'getState');
 
-            $updatedState = $this->stateService->updateState($stateRecord, $request->validated());
-            return AppHelpers::jsonResponse('State Successfully Updated', 200, $updatedState);
-        } catch (\Throwable $th) {
-            return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-        }
+        $updatedState = $this->stateService->updateState($record, $request->validated());
+        return AppHelpers::jsonResponse('State Successfully Updated', 200, $updatedState);
     }
 
     /**

@@ -34,4 +34,12 @@ class Continent extends Model
     {
         return $this->hasMany(Country::class);
     }
+
+    /* --------- METODI STATICI ---------*/
+
+    public static function getContinent(string $continent) :mixed {
+        return static::where('name', $continent)
+            ->orWhere('code', $continent)
+            ->first();
+    }
 }

@@ -49,4 +49,12 @@ class ItalianRegion extends Model
             'Veneto' => ['code' => 'VEN', 'id' => 20, 'name' => 'Veneto', 'capital' => 'Venezia'],
         ];
     }
+
+    /* --------- METODI STATICI ---------*/
+
+    public static function getRegion(string $region) :mixed {
+        return static::where('name', $region)
+            ->orWhere('code', $region)
+            ->first();
+    }
 }

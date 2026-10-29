@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Media\Episode;
 
+use App\Enums\FileRoleEnum;
 use App\Helpers\AppHelpers;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class EpisodeUpdateRequest extends EpisodeStoreRequest
 {
@@ -22,7 +24,11 @@ class EpisodeUpdateRequest extends EpisodeStoreRequest
      */
     public function rules(): array
     {
-        $rules = AppHelpers::updateRequestRules(parent::rules());
+        $rules = AppHelpers::updateRequestRules(
+            parent::rules(),
+            $this->route('tvSeriesId'),
+            ['files_meta.*.role', 'files_meta.*.label']
+        );
 
         $rules['tv_series_id'] = [
             'integer',

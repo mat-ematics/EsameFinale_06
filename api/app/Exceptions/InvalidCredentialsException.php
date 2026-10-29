@@ -2,10 +2,14 @@
 
 namespace App\Exceptions;
 
-use Exception;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
-class InvalidCredentialsException extends Exception
+class InvalidCredentialsException extends HttpException
 {
-    protected $message = 'Username and/or Password are Incorrect';
-    protected $code = 401;
+    protected int $code = 401;
+    protected string $message = 'Username and/or Password are Incorrect';
+
+    public function __construct() {
+        parent::__construct($this->code, $this->message);
+    }
 }

@@ -11,11 +11,6 @@ use App\Http\Requests\User\User\UserStoreRequest;
 use App\Http\Requests\User\User\UserUpdateRequest;
 use App\Models\User\User;
 use App\Services\User\UserService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Log;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class UserController extends Controller
 {
@@ -31,251 +26,97 @@ class UserController extends Controller
 
     /* --------- ENDPOINT CLASSICI --------- */
 
-    /**
-     * Display a listing of the resource.
-     */
+     /* --------- CRUD (admin only, enforced by route middleware) --------- */
+
     public function index()
     {
-        if (Gate::allows('isAdmin')) {
-            $users = $this->userService->getUserCollectionInfo(User::all());
+        $users = $this->userService->getUserCollectionInfo(User::all());
 
-            if (empty($users))
-            {
-                $users = 'There are no Users Present at the moment';
-            }
-            return AppHelpers::jsonResponse('Users Successfully Retrieved', 200, $users);
-        } 
-
-        return AppHelpers::jsonResponseForbidden();
+        return AppHelpers::jsonResponse(
+            empty($users) ? 'There are no Users at the moment' : 'Users Successfully Retrieved',
+            200,
+            $users ?: []
+        );
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    public function show(int $userId)
+    {
+        $profile = $this->userService->getUserInfo(User::getUser($userId));
+        return AppHelpers::jsonResponse('User Successfully Retrieved', 200, $profile);
+    }
+
     public function store(UserStoreRequest $request)
     {
-        if (Gate::allows('isAdmin')) {
-
-            $data = $request->validated();
-
-            try {
-                $userProfile =  $this->userService->createUser($data);
-                return AppHelpers::jsonResponse('User Successfully Created', 201, $userProfile);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $profile = $this->userService->createUser($request->validated());
+        return AppHelpers::jsonResponse('User Successfully Created', 201, $profile);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $userId)
+    public function update(UserUpdateRequest $request, int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            $user = User::getUser($userId);
-
-            if (!$user) {
-                return AppHelpers::jsonResponse('User Not Found', 404);
-            }
-
-            $userProfile = $this->userService->getUserInfo($user);
-            return AppHelpers::jsonResponse('User Successfully Retrieved', 200, $userProfile);
-        }
-        return AppHelpers::jsonResponseForbidden();
+        $profile = $this->userService->updateUser(User::getUser($userId), $request->validated());
+        return AppHelpers::jsonResponse('User Successfully Updated', 200, $profile);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(UserUpdateRequest $request, string $userId)
-    {
-        if (Gate::allows('isAdmin')) {
-
-            $data = $request->validated();
-
-            try {
-                 $user = User::getUser($userId);
-
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
-
-                $userProfile = $this->userService->updateUser($user, $data);
-                return AppHelpers::jsonResponse('User Successfully Updated', 200, $userProfile);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                 $user = User::getUser($userId);
-
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
-
-                $this->userService->softDeleteUser($user);
-                return AppHelpers::jsonResponse('User Successfully Soft Deleted', 204);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $this->userService->softDeleteUser(User::getUser($userId));
+        return AppHelpers::jsonResponse('User Successfully Soft Deleted', 200);
     }
 
     public function restore(int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                 $user = User::getUser($userId, true);
+        $user = User::getUser($userId, true);
+        abort_unless($user->trashed(), 409, 'User is Not Deleted');
 
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
-
-                if (!$user->trashed()) {
-                    throw new HttpException(400, 'User is Not Deleted');
-                }
-
-                $userProfile = $this->userService->restoreUser($user);
-                return AppHelpers::jsonResponse('User Successfully Restored', 201, $userProfile);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $profile = $this->userService->restoreUser($user);
+        return AppHelpers::jsonResponse('User Successfully Restored', 200, $profile);
     }
 
-    public function forceDestroy(string $userId)
+    public function forceDestroy(int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $user = User::getUser($userId, true);
+        $user = User::getUser($userId, true);
+        abort_unless($user->trashed(), 409, 'User is Not (Soft) Deleted');
 
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
-
-                if (!$user->trashed()) {
-                    throw new HttpException(400, 'User is Not Deleted');
-                }
-
-                $this->userService->forceDeleteUser($user);
-                return AppHelpers::jsonResponse('User has been Permanently Deleted', 204);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $this->userService->forceDeleteUser($user);
+        return AppHelpers::jsonResponse('User has been Permanently Deleted', 200);
     }
 
-    /* --------- ENDPOINT STATI --------- */
+    /* --------- STATES --------- */
 
-    public function ban(string $userId)
+    public function ban(int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $user = User::getUser($userId);
+        $user = User::getUser($userId);
+        abort_if($user->state->name === StateEnum::Banned->value, 409, 'User already Banned');
 
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
-
-                if ($user->state->name === StateEnum::Banned->value) {
-                    throw new HttpException(400, 'User already Banned!');
-                }
-
-                return AppHelpers::jsonResponse("User {$user->username} has been Banned!", 200);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-
-        }
-        return AppHelpers::jsonResponseForbidden();
+        $this->userService->banUser($user);
+        return AppHelpers::jsonResponse("User {$user->username} has been Banned!", 200);
     }
 
-    public function suspend(SuspendRequest $request, string $userId)
+    public function suspend(SuspendRequest $request, int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $user = User::getUser($userId);
+        $user = User::getUser($userId);
 
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
-
-                $stateUntil = $request->validated()['state_until'];
-
-                $this->userService->suspendUser($user, $stateUntil);
-                return AppHelpers::jsonResponse("User $user->username has been Suspended until $user->state_until!", 200);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-        return AppHelpers::jsonResponseForbidden();
+        $this->userService->suspendUser($user, $request->validated()['state_until']);
+        return AppHelpers::jsonResponse("User {$user->username} has been Suspended until {$user->state_until}!", 200);
     }
 
-    public function lock(LockRequest $request, string $userId)
+    public function lock(LockRequest $request, int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $user = User::getUser($userId);
+        $user       = User::getUser($userId);
+        $stateUntil = $request->validated()['state_until'] ?? null;
 
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
+        $this->userService->lockUser($user, $stateUntil);
 
-                $stateUntil = $request->validated()['state_until'] ?? null;
-
-                $this->userService->lockUser($user, $stateUntil);
-
-                $message = "User $user->username has been Locked";
-                if ($stateUntil) {
-                    $message .= " until $user->state_until";
-                }
-                return AppHelpers::jsonResponse($message . "!", 200);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-        return AppHelpers::jsonResponseForbidden();
+        $message = "User {$user->username} has been Locked" . ($stateUntil ? " until {$user->state_until}" : '') . '!';
+        return AppHelpers::jsonResponse($message, 200);
     }
 
-    public function activate(string $userId)
+    public function activate(int $userId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $user = User::getUser($userId);
+        $user = User::getUser($userId);
+        abort_if($user->state->name === StateEnum::Active->value, 409, 'User already Active');
 
-                if (!$user) {
-                    throw new HttpException(404, 'User Not Found');
-                }
-
-                if ($user->state->name === StateEnum::Active->value) {
-                    throw new HttpException(400, 'User already Active!');
-                }
-
-                $this->userService->activateUser($user);
-                return AppHelpers::jsonResponse("User {$user->username} has been Activated!", 200);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-        return AppHelpers::jsonResponseForbidden();
+        $this->userService->activateUser($user);
+        return AppHelpers::jsonResponse("User {$user->username} has been Activated!", 200);
     }
 }

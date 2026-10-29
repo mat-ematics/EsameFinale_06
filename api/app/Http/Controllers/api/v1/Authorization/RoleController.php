@@ -28,11 +28,12 @@ class RoleController extends Controller
     public function index()
     {
         $roles = $this->roleService->getRoleCollectionInfo(Role::all(), Gate::check('isAdmin'));
-        if (empty($roles))
-        {
-            $roles = 'There are no Roles Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Roles Successfully Retrieved', 200, $roles);
+
+        return AppHelpers::jsonResponse(
+            empty($roles) ? 'Roles Successfully Retrieved' : 'There are no Roles Present at the moment',
+            200,
+            $roles ?: [],
+        );
     }
 
 
@@ -49,16 +50,9 @@ class RoleController extends Controller
      */
     public function show(int|string $role)
     {
-        if (ctype_digit((string) $role)) {
-            $roleRecord = Role::find((int) $role);
-        } else {
-            $roleRecord = Role::getRole($role);
-        }
-        if (!$roleRecord) {
-            return AppHelpers::jsonResponse('Role Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(Role::class, $role, 'getRole');
 
-        $roleResource = $this->roleService->getRoleInfo($roleRecord, Gate::check('isAdmin'));
+        $roleResource = $this->roleService->getRoleInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('Role Successfully Retrieved', 200, $roleResource);
     }
 
@@ -67,24 +61,10 @@ class RoleController extends Controller
      */
     public function update(RoleUpdateRequest $request, int|string $role)
     {
-        if (Gate::denies('isAdmin')) {
-            return AppHelpers::jsonResponseForbidden();
-        }
-        try {
-            if (ctype_digit((string) $role)) {
-                $roleRecord = Role::find((int) $role);
-            } else {
-                $roleRecord = Role::getRole($role);
-            }
-            if (!$roleRecord) {
-                throw new HttpException(404, 'Role Not Found');
-            }
+        $record = AppHelpers::findByKey(Role::class, $role, 'getRole');
 
-            $updatedRole = $this->roleService->updateRole($roleRecord, $request->validated());
-            return AppHelpers::jsonResponse('Role Successfully Updated', 200, $updatedRole);
-        } catch (\Throwable $th) {
-            return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-        }
+        $updatedRole = $this->roleService->updateRole($record, $request->validated());
+        return AppHelpers::jsonResponse('Role Successfully Updated', 200, $updatedRole);
     }
 
     /**

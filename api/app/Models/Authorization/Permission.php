@@ -22,4 +22,13 @@ class Permission extends Model
     {
         return $this->belongsToMany(Role::class)->using(RolePermission::class);
     }
+
+    /* --------- METODI STATICI ---------*/
+
+    public static function getPermission(string $permission) : ?self 
+    {
+        return static::where('name', $permission)
+            ->orWhere('label', $permission)
+            ->first();
+    }
 }

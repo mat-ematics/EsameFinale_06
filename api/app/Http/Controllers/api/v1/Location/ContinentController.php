@@ -25,12 +25,12 @@ class ContinentController extends Controller
      */
     public function index()
     {
-        $continent = $this->continentService->getContinentCollectionInfo(Continent::all(), Gate::check('isAdmin'));
-        if (empty($continent))
-        {
-            $continent = 'There are no Continents Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Continents Successfully Retrieved', 200, $continent);
+        $continents = $this->continentService->getContinentCollectionInfo(Continent::all(), Gate::check('isAdmin'));
+        return AppHelpers::jsonResponse(
+            empty($continents) ? 'Continents Successfully Retrieved!' : "There are no Continents present at the moment",
+            200, 
+            $continents ?: [],
+        );
     }
 
 
@@ -47,16 +47,9 @@ class ContinentController extends Controller
      */
     public function show(int|string $continent)
     {
-         if (ctype_digit((string) $continent)) {
-            $continentRecord = Continent::find((int) $continent);
-        } else {
-            $continentRecord = Continent::getContinent($continent);
-        }
-        if (!$continentRecord) {
-            return AppHelpers::jsonResponse('Continent Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(Continent::class, $continent, 'getContinent');
 
-        $continentResource = $this->continentService->getContinentInfo($continentRecord, Gate::check('isAdmin'));
+        $continentResource = $this->continentService->getContinentInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('Continent Successfully Retrieved', 200, $continentResource);
     }
 

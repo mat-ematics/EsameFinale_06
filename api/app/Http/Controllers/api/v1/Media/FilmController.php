@@ -11,7 +11,6 @@ use App\Models\Media\Film;
 use App\Services\Media\FilmService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class FilmController extends Controller
 {
@@ -39,11 +38,11 @@ class FilmController extends Controller
         $filmRecords = Film::getFilmsWithFilters($name, $category, (int) $year, $isAdmin);
         $films = $this->filmService->getFilmCollectionInfo($filmRecords, $isAdmin);
 
-        if (empty($films))
-        {
-            $films = 'There are no Films Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Films Successfully Retrieved', 200, $films);
+        return AppHelpers::jsonResponse(
+            empty($films) ? 'Films Successfully Retrieved' : 'There are no Films Present at the moment',
+            200,
+            $films ?: [],
+        );
     }
 
     /**
@@ -51,17 +50,11 @@ class FilmController extends Controller
      */
     public function store(FilmStoreRequest $request)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                $uploadedFiles = collect($request->file('files'));
-                $film = $this->filmService->createFilm($request->validated(), $uploadedFiles->all());
-                return AppHelpers::jsonResponse('Film Successfully Created', 201, $film);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
+        $uploadedFiles = collect($request->file('files'))->all();
+        $film = $this->filmService->createFilm($request->validated(), $uploadedFiles);
 
-        return AppHelpers::jsonResponseForbidden();
+        return AppHelpers::jsonResponse('Film Successfully Created', 201, $film);
+
     }
 
     /**
@@ -70,7 +63,7 @@ class FilmController extends Controller
     public function show(int $filmId)
     {
         $isAdmin = Gate::check('isAdmin');
-        $filmRecord = $isAdmin ? Film::withTrashed()->find($filmId) : Film::find($filmId);
+        $filmRecord = Film::findFilm($filmId, $isAdmin);
 
         if (!$filmRecord) {
             return AppHelpers::jsonResponse('Film Not Found', 404);
@@ -85,32 +78,16 @@ class FilmController extends Controller
      */
     public function update(FilmUpdateRequest $request, int $filmId)
     {
-        if (Gate::allows('isAdmin')) {
+        $filmRecord = Film::findFilm($filmId, Gate::check('isAdmin'));
+        $data = $request->validated();
+        
+        MediaFileRulesHelper::checkRoleValidity($filmRecord, $data['files_meta']);
+        
+        $labels = AppHelpers::extractColumnFromArray($data['files_meta'], 'label');
+        $files = $filmRecord->getManyFilesByLabels($labels);
 
-            $data = $request->validated();
-
-            try {
-                //Ricerca su ID/Nome o Label
-                $filmRecord = Film::withTrashed()->find($filmId);
-
-                if (!$filmRecord) {
-                    throw new HttpException(404, 'Film Not Found');
-                }
-
-                MediaFileRulesHelper::checkRoleValidity($filmRecord, $data['files_meta']);
-
-                $labels = AppHelpers::extractColumnFromArray($data['files_meta'], 'label');
-                $files = $filmRecord->getManyFilesByLabels($labels);
-
-                $updatedFilm = $this->filmService->updateFilm($filmRecord, $data, $files);
-
-                return AppHelpers::jsonResponse('Film Successfully Updated', 200, $updatedFilm);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $updatedFilm = $this->filmService->updateFilm($filmRecord, $data, $files);
+        return AppHelpers::jsonResponse('Film Successfully Updated', 200, $updatedFilm);
     }
 
     /**
@@ -118,76 +95,28 @@ class FilmController extends Controller
      */
     public function destroy(int $filmId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                 //Ricerca su ID/Nome o Label
-                $filmRecord = Film::withTrashed()->find($filmId);
-                
-                if (!$filmRecord) {
-                    throw new HttpException(404, 'Film Not Found');
-                }
+        $record = Film::findFilm($filmId);
+        abort_if($record->trashed(), 409, 'The Selected Film is already Deleted');
 
-                if ($filmRecord->trashed()) {
-                    throw new HttpException(409, 'The Selected Film is already Deleted');
-                }
-
-                $this->filmService->deleteFilm($filmRecord);
-                return AppHelpers::jsonResponse('Film Successfully Deleted', 204);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $this->filmService->deleteFilm($record);
+        return AppHelpers::jsonResponse('Film Successfully Deleted', 200);
     }
 
     public function restore(int $filmId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                //Ricerca su ID/Nome o Label
-                $filmRecord = Film::withTrashed()->find($filmId);
+        $record = Film::findFilm($filmId, true);
+        abort_unless($record->trashed(), 409, 'Film is Not Deleted');
 
-                if (!$filmRecord) {
-                    throw new HttpException(404, 'Film Not Found');
-                }
-
-                if (!$filmRecord->trashed()) {
-                    throw new HttpException(409, 'Film is Not Deleted');
-                }
-
-                $filmResource = $this->filmService->restorefilm($filmRecord);
-                return AppHelpers::jsonResponse('Film Successfully Restored', 200, $filmResource);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $resource = $this->filmService->restoreFilm($record);
+        return AppHelpers::jsonResponse('Film Successfully Restored', 200, $resource);
     }
 
     public function forceDestroy(int $filmId)
     {
-        if (Gate::allows('isAdmin')) {
-            try {
-                //Ricerca su ID/Nome o Label
-                $filmRecord = Film::withTrashed()->find($filmId);
+        $record = film::findSeries($filmId);
+        abort_unless($record->trashed(), 409, 'Film is Not (Soft) Deleted');
 
-                if (!$filmRecord) {
-                    throw new HttpException(404, 'Film Not Found');
-                }
-
-                if (!$filmRecord->trashed()) {
-                    throw new HttpException(409, 'Film is Not (Soft) Deleted');
-                }
-
-                $this->filmService->forceDeleteFilm($filmRecord);
-                return AppHelpers::jsonResponse('Film has been Permanently Deleted', 204);
-            } catch (\Throwable $th) {
-                return AppHelpers::jsonResponse($th->getMessage(), AppHelpers::safeHttpStatus($th));
-            }
-        }
-
-        return AppHelpers::jsonResponseForbidden();
+        $this->filmService->forceDeleteFilm($record);
+        return AppHelpers::jsonResponse('Film has been Permanently Deleted', 200);
     }
 }

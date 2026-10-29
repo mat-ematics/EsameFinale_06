@@ -84,4 +84,13 @@ class Episode extends Model
 
         return $query->where('name', $episode)->first();
     }
+
+    /** The episode must belong to the series, otherwise "Episode Not Found" (404). */
+    public static function findEpisode(int $tvSeriesId, int $episodeId, bool $withTrashed = false): Episode
+    {
+        TvSeries::findSeries($tvSeriesId, $withTrashed);
+
+        $query = $withTrashed ? Episode::withTrashed() : Episode::query();
+        return $query->where('tv_series_id', $tvSeriesId)->findOrFail($episodeId);
+    }
 }

@@ -25,12 +25,12 @@ class ItalianProvinceController extends Controller
      */
     public function index()
     {
-        $province = $this->provinceService->getItalianProvinceCollectionInfo(ItalianProvince::all(), Gate::check('isAdmin'));
-        if (empty($province))
-        {
-            $province = 'There are no Provinces Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Provinces Successfully Retrieved', 200, $province);
+        $provinces = $this->provinceService->getItalianProvinceCollectionInfo(ItalianProvince::all(), Gate::check('isAdmin'));
+        return AppHelpers::jsonResponse(
+            empty($provinces) ? 'Provinces Successfully Retrieved!' : "There are no Provinces present at the moment",
+            200, 
+            $provinces ?: [],
+        );
     }
 
 
@@ -47,16 +47,9 @@ class ItalianProvinceController extends Controller
      */
     public function show(int|string $province)
     {
-         if (ctype_digit((string) $province)) {
-            $provinceRecord = ItalianProvince::find((int) $province);
-        } else {
-            $provinceRecord = ItalianProvince::getItalianProvince($province);
-        }
-        if (!$provinceRecord) {
-            return AppHelpers::jsonResponse('Province Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(ItalianProvince::class, $province, 'getProvince');
 
-        $provinceResource = $this->provinceService->getItalianProvinceInfo($provinceRecord, Gate::check('isAdmin'));
+        $provinceResource = $this->provinceService->getItalianProvinceInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('Province Successfully Retrieved', 200, $provinceResource);
     }
 

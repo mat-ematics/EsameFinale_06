@@ -37,22 +37,17 @@ class TokenAuth
             if ($mode === 'optional') {
                 return $next($request); //guest, no user set
             }
-            return AppHelpers::jsonResponse('Missing Token!', 401);
+            abort('Missing Token!', 401);
         }
 
-        if (!$this->jwtService->validateToken($token)) {
-            return AppHelpers::jsonResponse('Invalid Token!', 401);
-        }
+        abort_unless($this->jwtService->validateToken($token), 401, 'Invalid Token!');
 
-        $tkPayload = $this->jwtService->decodeJWTPayload($token);
-        $user = User::getUser($tkPayload['sub']);
+        $payload = $this->jwtService->decodeJWTPayload($token);
+        $user = User::find($payload['sub']) ?? abort(401, 'Invalid Token!');
 
-        if (!$user) {
-            return AppHelpers::jsonResponse('Invalid Token!', 401);
-        }
+        abort_unless($user->isActive(), 403, 'Account is not active');
 
         Auth::login($user);
-
         return $next($request);
     }
 }

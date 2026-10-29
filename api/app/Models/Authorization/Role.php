@@ -29,6 +29,16 @@ class Role extends Model
         return $this->belongsToMany(User::class, 'user_role')->using(UserRole::class);
     }
     
+    
+    /* --------- METODI ---------*/
+
+    public function getRoles() : \Illuminate\Database\Eloquent\Collection
+    {
+        return static::all(['name', 'label']);
+    }
+
+    /* --------- METODI STATICI ---------*/
+
     public static function getRole(string $role) : ?self
     {
         return static::where('name', $role)
@@ -39,12 +49,5 @@ class Role extends Model
     public static function getRoleId(string $role) : ?int
     {
         return static::getRole($role)->id;
-    }
-
-    /* --------- METODI ---------*/
-
-    public function getRoles() : \Illuminate\Database\Eloquent\Collection
-    {
-        return static::all(['name', 'label']);
     }
 }

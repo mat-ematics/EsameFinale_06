@@ -42,43 +42,34 @@ class UserProfileController extends Controller
 
     public function destroyCurrentUser()
     {
-        $user = Auth::user();
-        $this->profileService->deleteProfile($user);
-        return AppHelpers::jsonResponse('User Successfully Soft Deleted', 204);
+        $this->profileService->deleteProfile(Auth::user());
+        return AppHelpers::jsonResponse('User Successfully Soft Deleted', 200);
     }
 
     public function showCredit()
     {
-        $user= Auth::user();
-        $credit = number_format($this->profileService->getCreditValue($user), 2);
-        return AppHelpers::jsonResponse('Your Total Credit: ' . $credit, 200);
+        $credit = (float) $this->profileService->getCreditValue(Auth::user());
+        return AppHelpers::jsonResponse('Credit Successfully Retrieved', 200, ['credit' => $credit]);
     }
 
     public function addCredit(CreditStoreRequest $request)
     {
-        $user = Auth::user();
-
-        $creditToAdd = $request->validated()['credit'];
-
-        $newCredit = number_format($this->profileService->addCredit($user, $creditToAdd), 2);
-
-        return AppHelpers::jsonResponse('Credit Added! Your Credit is now ' . $newCredit);
+        $credit = (float) $this->profileService->addCredit(Auth::user(), $request->validated()['credit']);
+        return AppHelpers::jsonResponse('Credit Added', 200, ['credit' => $credit]);
     }
 
     public function removeCredit(CreditStoreRequest $request)
     {
-        $user = Auth::user();
+        $user   = Auth::user();
+        $amount = $request->validated()['credit'];
 
-        $creditToSub = $request->validated()['credit'];
+        abort_if(
+            $this->profileService->getCreditValue($user) < $amount,
+            422,
+            'You cannot remove more credit than what you have!'
+        );
 
-        $currCredit = $this->profileService->getCreditValue($user);
-
-        if ($currCredit < $creditToSub) {
-            return AppHelpers::jsonResponse('You cannot remove more credit than what you have!', 422);
-        }
-
-        $newCredit = number_format($this->profileService->removeCredit($user, $creditToSub), 2);
-
-        return AppHelpers::jsonResponse('Credit Removed! Your Credit is now ' . $newCredit);
-    }
+        $credit = (float) $this->profileService->removeCredit($user, $amount);
+        return AppHelpers::jsonResponse('Credit Removed', 200, ['credit' => $credit]);
+}
 }

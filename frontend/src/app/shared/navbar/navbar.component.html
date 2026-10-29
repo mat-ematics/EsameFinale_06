@@ -1,0 +1,31 @@
+<header>
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <a class="navbar-brand" routerLink="/">
+        <img class="navbar-brand-img" src="media/images/brand_code_light.png" alt="CODE logo">
+      </a>
+
+      <button class="navbar-toggler" type="button" aria-controls="mainMenu"
+              [attr.aria-expanded]="menuOpen()" aria-label="Toggle navigation" (click)="toggle()">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainMenu" [class.show]="menuOpen()">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/browse" routerLinkActive="active" (click)="menuOpen.set(false)">Home Page</a>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            @if (auth.isLoggedIn()) {
+              <button type="button" class="btn bg-brand" (click)="logout()">Sign Out</button>
+            } @else {
+              <a routerLink="/login" class="btn bg-brand" role="button" (click)="menuOpen.set(false)">Sign In</a>
+            }
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+</header>

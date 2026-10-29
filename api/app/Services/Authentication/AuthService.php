@@ -9,6 +9,7 @@ use App\Http\Resources\User\User\UserResource;
 use App\Models\Authentication\Access;
 use App\Models\Authentication\JwtSecret;
 use App\Models\Authentication\Session;
+use App\Models\User\Password;
 use App\Models\User\User;
 use App\Services\User\UserService;
 use Carbon\Carbon;
@@ -49,9 +50,10 @@ class AuthService {
         }
         
         $user = User::getUserByUsername($username);
+        $stored = $user?->currentPassword?->password ?? str_repeat('0', 64); //fantoccio della stessa lunghezza
+        $valid  = Password::hashEquals($stored, $password) && $user !== null;
 
-
-        if (!isset($user) || !$user->currentPassword->checkPasswordLogin($password)) {
+        if (!$valid) {
             $access->addError();
             throw new InvalidCredentialsException();
         }

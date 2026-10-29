@@ -69,7 +69,7 @@ class TvSeries extends Model
     {
         $query = $withTrashed ? static::withTrashed() : static::query();
 
-        if (!empty($season)) {
+        if (!empty($season) || $season <= 0) {
             $query->whereHas('episodes', function ($q) use ($season) {
                 $q->where('season_number', $season);
             });
@@ -120,5 +120,11 @@ class TvSeries extends Model
         }
 
         return $query->where('name', $tvSeries)->first();
+    }
+
+    public static function findSeries(int $tvSeriesId, bool $withTrashed = false): self
+    {
+        $query = $withTrashed ? self::withTrashed() : self::query();
+        return $query->findOrFail($tvSeriesId);
     }
 }

@@ -35,7 +35,7 @@ class ProtectNewLogin
             $attempt->resetAttempts();
         }
 
-        if ($attempt && $attempt->hasActiveAttempt($attemptDuration)) {
+        if ($attempt && $attempt->attemptWindowExpired($attemptDuration)) {
             return AppHelpers::jsonResponse('Login exceeded max duration: request a new salt', 429);
         }
 

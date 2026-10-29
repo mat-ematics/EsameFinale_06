@@ -25,12 +25,12 @@ class ItalianRegionController extends Controller
      */
     public function index()
     {
-        $region = $this->regionService->getItalianRegionCollectionInfo(ItalianRegion::all(), Gate::check('isAdmin'));
-        if (empty($region))
-        {
-            $region = 'There are no Regions Present at the moment';
-        }
-        return AppHelpers::jsonResponse('Regions Successfully Retrieved', 200, $region);
+        $regions = $this->regionService->getItalianRegionCollectionInfo(ItalianRegion::all(), Gate::check('isAdmin'));
+        return AppHelpers::jsonResponse(
+            empty($regions) ? 'Regions Successfully Retrieved!' : "There are no Regions present at the moment",
+            200, 
+            $regions ?: [],
+        );
     }
 
 
@@ -47,16 +47,9 @@ class ItalianRegionController extends Controller
      */
     public function show(int|string $region)
     {
-         if (ctype_digit((string) $region)) {
-            $regionRecord = ItalianRegion::find((int) $region);
-        } else {
-            $regionRecord = ItalianRegion::getItalianRegion($region);
-        }
-        if (!$regionRecord) {
-            return AppHelpers::jsonResponse('Region Not Found', 404);
-        }
+        $record = AppHelpers::findByKey(ItalianRegion::class, $region, 'getRegion');
 
-        $regionResource = $this->regionService->getItalianRegionInfo($regionRecord, Gate::check('isAdmin'));
+        $regionResource = $this->regionService->getItalianRegionInfo($record, Gate::check('isAdmin'));
         return AppHelpers::jsonResponse('Region Successfully Retrieved', 200, $regionResource);
     }
 

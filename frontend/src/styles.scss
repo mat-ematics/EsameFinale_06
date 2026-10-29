@@ -1,1 +1,191 @@
-/* You can add global styles to this file, and also import other style files */
+/* --- IMPORTS ---  */
+
+@use 'variables' as var;
+@use 'sass:color';
+
+/* --- BOOTSTRAP OVERWRITES --- */
+
+/* ELEMENTS */
+
+textarea {
+    resize: none; //Only Scrollbars
+}
+
+/* PLACEHOLDERS */
+
+/* (Input) Placeholder */
+::placeholder {
+    color: var.$placeholder-color !important; //Default Placeholder Color for input
+}
+
+/* Select Element */
+select {
+
+    //When placeholder option is selected
+    &:has(option[value=""]:checked) {
+        color: var.$placeholder-color; //Placeholder Color
+
+        /* Option */
+        option:not([value=""]) {
+            color: initial; //Restore normal color for the dropdown options
+        }
+    }
+}
+
+/* Date Input */
+input[type="date"] {
+
+    //When Invalid or Empty
+    &:not([value]),
+    &[value=""] {
+        
+        /* Placeholder */
+        &::-webkit-datetime-edit {
+            color: var.$placeholder-color; //Placeholder Color
+        }
+    }
+}
+
+/* CLASSES*/
+
+.invalid-feedback {
+    display: block;
+    min-height: 1.5rem;
+    visibility: hidden;
+}
+
+
+/* --- GLOBAL STYLE CLASSES --- */
+
+/* BRAND */
+
+/* Normal */
+.color-brand {
+    color: var.$brand-color;
+}
+/* Dark */
+.color-brand-dark {
+    color: var.$brand-color-dark !important;
+}
+/* Background */
+.bg-brand {
+    background-color: var.$brand-color;
+}
+/* Button */
+.btn-brand {
+    background-color: var.$brand-color;
+
+    //On Hover and Active
+    &:hover, &:active {
+        //Darken button
+        background-color: var.$brand-color-dark !important;
+        //Remove Border
+        border-color: rgba($color: #000000, $alpha: 0.0) !important;
+    }
+}
+
+
+/* SIZES */
+
+/* Logo */
+.logo-small {
+    height: 40px;
+}
+/* Background Image Full Cover */
+.image-full-cover {
+    display: block;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* FONT-SIZES */
+
+/* Small */
+.fs-sm {
+    font-size: var.$font-size-small;
+}
+/* Big */
+.fs-big {
+    font-size: var.$font-size-big;
+}
+
+/* WIDTHS */
+
+/* Max-Content */
+.w-max-content {
+    width: max-content;
+}
+/* Min-Content */
+.w-min-content {
+    width: min-content;
+}
+/* 80% */
+.w-80 {
+    width: 80% !important;
+}
+
+/* --- FORM --- */
+.required-text {
+    color: var.$required-color;
+}
+
+/* --- ELEMENTS  --- */
+
+/* GENERAL */
+
+body {
+    background-color: var.$bg-dark-custom;
+}
+
+/* HEADER/NAVBAR STYLES */
+
+/* Header */
+header {
+    background-color: var.$header-bg-dark-custom; //Default Color
+}
+/* Navbar Image */
+.navbar-brand-img {
+    height: 35px; //Image Size
+}
+/* Dropdown */
+.nav-dropdown .dropdown-item:hover, .nav-dropdown .dropdown-item:focus {
+    background-color: var.$brand-color !important; //Default Background
+}
+
+/* FOOTER */
+
+footer {
+    background-color: var.$footer-bg-dark-custom; //Default Background
+
+    /* All Child Elements */
+    * {
+        //No Distinctions in Text
+        color: gray;
+        text-decoration: none;
+    }
+}
+
+/* --- DARK FORM (shared by register and login) --- */
+
+/* Form Inputs */
+.form-control, .form-select {
+    background-color: var.$bg-dark-custom; //Default Color
+    border: 0; //No border
+    
+    //On focus
+    &:focus {
+        //Change Focus Ring Color
+        border-color: var.$focus-ring-brand-border;
+        box-shadow: var.$focus-ring-brand-shadow;
+    }
+}
+
+/* Form Label and Form Text */
+.form-label, .form-text {
+    color: var.$text-secondary-color;
+}
+
+.invalid-feedback.is-shown {
+    visibility: visible;
+}

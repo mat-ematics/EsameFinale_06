@@ -87,4 +87,10 @@ class Film extends Model
 
         return $query->where('name', $film)->first();
     }
+
+    public static function findFilm(int $tvSeriesId, bool $withTrashed = false): self
+    {
+        $query = $withTrashed ? self::withTrashed() : self::query();
+        return $query->findOrFail($tvSeriesId);
+    }
 }

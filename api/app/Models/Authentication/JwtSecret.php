@@ -43,7 +43,6 @@ class JwtSecret extends Model
 
     public static function getSecret(int $userId) : ?string
     {
-        $record = static::where('user_id', $userId)->first();
-        return $record->secret;
+        return static::where('user_id', $userId)->value('secret');
     }
 }

@@ -15,7 +15,7 @@ return new class extends Migration
             Schema::create('continents', function (Blueprint $table) {
                 $table->id();
                 $table->string('name')->unique();
-                $table->char('code', 2);
+                $table->char('code', 2)->unique();
             });
         }
     }

@@ -13,11 +13,6 @@ class Session extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
-    protected $dates = [
-        'issued_at',
-        'expires_at',
-        'revoked_at',
-    ];
 
     protected $fillable = [
         'jti',
@@ -26,6 +21,13 @@ class Session extends Model
         'expires_at',
         'revoked_at',
     ];
+
+    /* --------- FUNZIONI PROPRIETA --------- */
+
+    protected function casts(): array
+    {
+        return ['issued_at' => 'datetime', 'expires_at' => 'datetime', 'revoked_at' => 'datetime'];
+    }
 
     /* --------- RELAZIONI ---------*/
 
