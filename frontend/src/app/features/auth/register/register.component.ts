@@ -11,10 +11,11 @@ import { COUNTRY_ITALY_ID, FieldName, RegistrationFormData } from './types/regis
 import { validateRegistrationField, validateRegistrationForm } from './validation/form_validator';
 import { FormFieldsValidationResult } from './validation/validation_types';
 import { getFieldErrorMessage } from './ui/form_errors';
+import { PasswordFieldComponent } from '../../../shared/password-field/password-field.component.js';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, NgClass, RouterLink],
+  imports: [ReactiveFormsModule, NgClass, RouterLink, PasswordFieldComponent],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
 })
@@ -25,7 +26,7 @@ export class RegisterComponent {
 
   /** Values only: validation stays in your validators, not in Angular's */
   readonly form = this.fb.group({
-    name: [''], surname: [''], email: [''], username: [''], password: [''],
+    name: [''], surname: [''], email: [''], username: [''], password: [''], confirm_password: [''],
     birthdate: [''], gender: [''], country_id: [''],
     italian_municipality_id: [{ value: '', disabled: true }],
     street_address: [''], house_number: [''], cap: [''],
@@ -91,6 +92,12 @@ export class RegisterComponent {
     if (field === 'country_id') {
       next.italian_municipality_id = validateRegistrationField('italian_municipality_id', data);
     }
+
+    // The confirmation depends on the password: re-check it if it was already validated
+    if (field === 'password' && this.results().confirm_password) {
+        next.confirm_password = validateRegistrationField('confirm_password', data);
+    }
+
     this.results.set(next);
 
     // The user is editing the field: drop the old server error
@@ -117,7 +124,7 @@ export class RegisterComponent {
   }
 
   private toPayload(d: RegistrationFormData) {
-    const { italian_municipality_id, locality, additional_info, ...rest } = d;
+    const { italian_municipality_id, locality, additional_info, confirm_password, ...rest } = d;
     return {
         ...rest,
         username: d.username.trim(),

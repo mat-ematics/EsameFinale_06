@@ -14,7 +14,7 @@
 import { COUNTRY_ITALY_ID, RegistrationFormData } from "../types/registration_form_data.js";
 import { FieldName } from "../types/registration_form_data.js";
 import { ErrorCodes } from "./error_codes.js";
-import { validateBirthDate, validateCAP, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateText, validateUsername } from "./field_validators.js";
+import { validateBirthDate, validateCAP, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateText, validateUsername } from "./field_validators.js";
 import { createValidFieldResult, FieldValidationResult, FormFieldsValidationResult, FormValidationResult } from "./validation_types.js";
 
 
@@ -34,6 +34,7 @@ const fieldValidatorsMap = {
     email: (data: RegistrationFormData) => validateEmail(data.email),
     username: (data: RegistrationFormData) => validateUsername(data.username),
     password: (data: RegistrationFormData) => validatePassword(data.password),
+    confirm_password: (data: RegistrationFormData) => validateConfirmPassword(data.password, data.confirm_password),
     birthdate: (data: RegistrationFormData) => validateBirthDate(data.birthdate),
     gender: (data: RegistrationFormData) => validateSelect(data.gender),
     country_id: (data: RegistrationFormData) => validateSelect(data.country_id),

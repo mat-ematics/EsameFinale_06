@@ -8,12 +8,13 @@ import { apiErrorMessage } from '../../../core/api.service';
 import { validateRequired } from '../register/validation/field_validators';
 import { FieldValidationResult } from '../register/validation/validation_types';
 import { getFieldErrorMessage } from '../register/ui/form_errors';
+import { PasswordFieldComponent } from '../../../shared/password-field/password-field.component.js';
 
 type LoginField = 'username' | 'password';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, NgClass, RouterLink],
+  imports: [ReactiveFormsModule, NgClass, RouterLink, PasswordFieldComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })

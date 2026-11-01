@@ -163,6 +163,22 @@ export const validatePassword = (password: string): FieldValidationResult => {
 }
 
 /**
+ * Validate Confirm Password
+ *
+ * Checks the confirmation is filled in and identical to the password.
+ * The comparison is exact (no trimming), since that is what will be sent.
+ */
+export function validateConfirmPassword(password: string, confirmation: string): FieldValidationResult {
+    if (isEmpty(confirmation)) {
+        return { isValid: false, errorCode: ErrorCodes.REQUIRED }
+    }
+
+    return password === confirmation
+        ? validFieldResult
+        : { isValid: false, errorCode: ErrorCodes.PASSWORD_MISMATCH }
+}
+
+/**
  * Validate Birth Date
  * 
  * Validates a birth date by checking:

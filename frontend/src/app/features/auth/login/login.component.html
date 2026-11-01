@@ -14,13 +14,14 @@
     </div>
 
     <!-- Password -->
-    <div class="mb-3">
-      <label class="form-label" for="inputPassword">Password</label>
-      <input type="password" formControlName="password" id="inputPassword" class="form-control"
-             placeholder="Your password" autocomplete="current-password"
-             [ngClass]="cls('password')" (blur)="onBlur('password')">
-      <div class="invalid-feedback" [class.is-shown]="isInvalid('password')">{{ error('password') }}</div>
-    </div>
+    <app-password-field
+        formControlName="password"
+        inputId="inputPassword"
+        placeholder="Your password"
+        autocomplete="current-password"
+        [valid]="isValid('password')"
+        [invalid]="isInvalid('password')"
+        (blurred)="onBlur('password')" />
 
     <!-- Server error: deliberately generic for wrong user or password -->
     @if (formError()) {

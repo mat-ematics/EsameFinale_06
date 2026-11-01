@@ -72,6 +72,10 @@ export const FieldErrorMessagesMap: FieldErrorMessages = {
         INVALID_PASSWORD: "Password is too weak Follow the instructions",
         INVALID_FORMAT: "Password contains invalid characters",
     },
+    confirm_password: {
+        REQUIRED: "Please confirm your password",
+        PASSWORD_MISMATCH: "Passwords do not match",
+    },
     birthdate: {
         REQUIRED: "Birthdate is required",
         DATE_TOO_YOUNG: "Must be at least 18 years old",

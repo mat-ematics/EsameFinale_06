@@ -28,6 +28,7 @@
  * - INVALID_CAP: Italian postal code (CAP) format is invalid
  * - INVALID_CREDIT: Credit amount is not a positive number
  * - MUNICIPALITY_REQUIRED: Municipality must be selected when country is Italy
+ * - PASSWORD_MISMATCH: the inputs 'Password' and 'Confirm Password' do not match
  */
 export const ErrorCodes = {
     REQUIRED: "REQUIRED",
@@ -41,6 +42,7 @@ export const ErrorCodes = {
     INVALID_CAP: "INVALID_CAP",
     INVALID_CREDIT: "INVALID_CREDIT",
     MUNICIPALITY_REQUIRED: "MUNICIPALITY_REQUIRED",
+    PASSWORD_MISMATCH: "PASSWORD_MISMATCH",
 } as const;
 
 
