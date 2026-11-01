@@ -85,10 +85,10 @@ export const FieldErrorMessagesMap: FieldErrorMessages = {
         REQUIRED: "Select a gender",
     },
     country_id: {
-        REQUIRED: "Select a country",
+        REQUIRED: "Select a country from the suggestions",
     },
     italian_municipality_id: {
-        MUNICIPALITY_REQUIRED: "Select a municipality",
+        MUNICIPALITY_REQUIRED: "Select a municipality from the suggestions",
     },
     street_address: {
         REQUIRED: "Street address is required",

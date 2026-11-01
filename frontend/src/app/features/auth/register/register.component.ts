@@ -12,10 +12,12 @@ import { validateRegistrationField, validateRegistrationForm } from './validatio
 import { FormFieldsValidationResult } from './validation/validation_types';
 import { getFieldErrorMessage } from './ui/form_errors';
 import { PasswordFieldComponent } from '../../../shared/password-field/password-field.component.js';
+import { LookupService } from '../../../core/lookup.service.js';
+import { TypeaheadComponent } from '../../../shared/typeahead/typeahead.component.js';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, NgClass, RouterLink, PasswordFieldComponent],
+  imports: [ReactiveFormsModule, NgClass, RouterLink, PasswordFieldComponent, TypeaheadComponent],
   templateUrl: './register.component.html',
   styleUrl: './register.component.scss',
 })
@@ -23,6 +25,7 @@ export class RegisterComponent {
   private fb = inject(FormBuilder).nonNullable;
   private auth = inject(AuthService);
   private router = inject(Router);
+  private lookups = inject(LookupService);
 
   /** Values only: validation stays in your validators, not in Angular's */
   readonly form = this.fb.group({
@@ -40,6 +43,10 @@ export class RegisterComponent {
   readonly serverErrors = signal<Record<string, string>>({});
   readonly formError = signal<string | null>(null);
   readonly submitting = signal(false);
+
+  readonly searchCountries = (term: string) => this.lookups.searchCountries(term);
+  readonly searchMunicipalities = (term: string) => this.lookups.searchMunicipalities(term);
+
 
   constructor() {
     // Municipality is only enabled for Italy (was the 'input' listener in register.ts)

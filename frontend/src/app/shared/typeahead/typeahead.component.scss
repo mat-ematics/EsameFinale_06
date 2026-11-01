@@ -1,0 +1,39 @@
+@use 'variables' as var;
+
+:host {
+    display: block;
+    position: relative;
+}
+
+.typeahead-panel {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    margin-top: .25rem;
+    max-height: 15rem;
+    overflow-y: auto;
+    background-color: var.$bg-dark-custom;
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: .375rem;
+    box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .5);
+}
+
+.typeahead-option,
+.typeahead-note {
+    padding: .5rem .75rem;
+}
+
+.typeahead-note {
+    color: var.$text-secondary-color;
+    font-size: .875rem;
+}
+
+.typeahead-option {
+    cursor: pointer;
+
+    &.active {
+        background-color: rgba(255, 255, 255, .1);
+    }
+}

@@ -23,8 +23,12 @@ class CountryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->filled('search')) {
+            return $this->lookupSearch(Country::class, $request);
+        }
+
         $countries = $this->countryService->getCountryCollectionInfo(Country::all(), Gate::check('isAdmin'));
         return AppHelpers::jsonResponse(
             empty($countries) ? 'Countries Successfully Retrieved!' : "There are no Countries present at the moment",

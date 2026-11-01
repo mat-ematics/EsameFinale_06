@@ -23,14 +23,9 @@ class ItalianMunicipalityController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $municipalities = $this->municipalityService->getItalianMunicipalityCollectionInfo(ItalianMunicipality::all(), Gate::check('isAdmin'));
-        return AppHelpers::jsonResponse(
-            empty($municipalities) ? 'Municipalities Successfully Retrieved!' : "There are no Municipalities present at the moment",
-            200, 
-            $municipalities ?: [],
-        );
+        return $this->lookupSearch(ItalianMunicipality::class, $request);
     }
 
 

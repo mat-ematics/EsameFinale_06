@@ -93,27 +93,30 @@
 
     <!-- Country -->
     <div class="mb-3">
-      <label class="form-label" for="selectCountry">Country <span class="required-text">*</span></label>
-      <select formControlName="country_id" id="selectCountry" class="form-select"
-              [ngClass]="cls('country_id')" (blur)="onBlur('country_id')">
-        <option disabled hidden value="">Select Your Country of Residence</option>
-        <option value="1">Italy</option>
-        <option value="2">France</option>
-        <option value="3">Germany</option>
-      </select>
-      <div class="invalid-feedback" [class.is-shown]="isInvalid('country_id')">{{ error('country_id') }}</div>
+    <label class="form-label" for="inputCountry">Country <span class="required-text">*</span></label>
+    <app-typeahead
+        formControlName="country_id"
+        inputId="inputCountry"
+        placeholder="Start typing your country…"
+        [search]="searchCountries"
+        [valid]="isValid('country_id')"
+        [invalid]="isInvalid('country_id')"
+        (blurred)="onBlur('country_id')" />
+    <div class="invalid-feedback" [class.is-shown]="isInvalid('country_id')">{{ error('country_id') }}</div>
     </div>
 
     <!-- Italian Municipality -->
     <div class="mb-3">
-      <label class="form-label" for="selectItalianMunicipality">Italian Municipality</label>
-      <select formControlName="italian_municipality_id" id="selectItalianMunicipality" class="form-select"
-              [ngClass]="cls('italian_municipality_id')" (blur)="onBlur('italian_municipality_id')">
-        <option disabled hidden value="">Select your Municipality of Residence</option>
-        <option value="101">Rome</option>
-        <option value="102">Milan</option>
-      </select>
-      <div class="invalid-feedback" [class.is-shown]="isInvalid('italian_municipality_id')">{{ error('italian_municipality_id') }}</div>
+    <label class="form-label" for="inputItalianMunicipality">Italian Municipality</label>
+    <app-typeahead
+        formControlName="italian_municipality_id"
+        inputId="inputItalianMunicipality"
+        placeholder="Start typing your municipality…"
+        [search]="searchMunicipalities"
+        [valid]="isValid('italian_municipality_id')"
+        [invalid]="isInvalid('italian_municipality_id')"
+        (blurred)="onBlur('italian_municipality_id')" />
+    <div class="invalid-feedback" [class.is-shown]="isInvalid('italian_municipality_id')">{{ error('italian_municipality_id') }}</div>
     </div>
 
     <!-- Street address -->

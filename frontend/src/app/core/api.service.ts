@@ -79,7 +79,8 @@ export class ApiService {
     protected request<T = unknown>(
         resource: (string | number)[],
         method: HttpRequestType,
-        body: object | null = null
+        body: object | null = null,
+        params?: Record<string, string | number>,
     ): HttpResponseObservable<T> {
         //controlla se la richiesta necessita un corpo
         const hasBody = method === 'POST' || method === 'PUT';
@@ -88,7 +89,10 @@ export class ApiService {
             method,
             this.getURL(resource), 
             //se necessita body e ne ha uno passato lo invia, altrimenti spedisce un corpo vuoto
-            hasBody ? { body: body ?? {} } : {}
+            {
+                ...(hasBody ? { body: body ?? {} } : {}),
+                params,
+            }
         );
     }
 }

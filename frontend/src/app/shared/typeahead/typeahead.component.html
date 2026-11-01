@@ -1,0 +1,47 @@
+<!-- shared/typeahead/typeahead.component.html -->
+<input
+  class="form-control"
+  type="text"
+  role="combobox"
+  autocomplete="off"
+  aria-autocomplete="list"
+  [id]="inputId()"
+  [value]="text()"
+  [placeholder]="placeholder()"
+  [disabled]="disabled()"
+  [class.is-valid]="valid()"
+  [class.is-invalid]="invalid()"
+  [attr.aria-expanded]="open()"
+  [attr.aria-controls]="listId()"
+  [attr.aria-activedescendant]="active() >= 0 ? optionId(active()) : null"
+  (input)="onInput($event)"
+  (keydown)="onKeydown($event)"
+  (focus)="onFocus()"
+  (blur)="onBlur()">
+
+@if (open()) {
+  <ul class="typeahead-panel list-unstyled mb-0" role="listbox" [id]="listId()">
+    @if (shortText()) {
+      <li class="typeahead-note">Type at least {{ minChars() }} characters</li>
+    } @else if (loading()) {
+      <li class="typeahead-note">Searching…</li>
+    } @else if (failed()) {
+      <li class="typeahead-note text-danger">Could not load suggestions</li>
+    } @else if (items().length === 0) {
+      <li class="typeahead-note">No results</li>
+    } @else {
+      @for (item of items(); track item.id; let i = $index) {
+        <!-- mousedown preventDefault keeps focus in the input, so the click lands before any blur -->
+        <li
+          role="option"
+          class="typeahead-option"
+          [id]="optionId(i)"
+          [class.active]="i === active()"
+          [attr.aria-selected]="i === active()"
+          (mousedown)="$event.preventDefault()"
+          (click)="select(item)"
+          (mouseenter)="active.set(i)">{{ item.name }}</li>
+      }
+    }
+  </ul>
+}
