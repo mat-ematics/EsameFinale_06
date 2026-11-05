@@ -34,39 +34,39 @@
     <div class="mb-3">
       <label class="form-label" for="inputUsername">Username <span class="required-text">*</span></label>
       <input type="text" formControlName="username" id="inputUsername" class="form-control" placeholder="e.g. jd1999"
-             [ngClass]="cls('username')" (blur)="onBlur('username')">
+             autocomplete="username" [ngClass]="cls('username')" (blur)="onBlur('username')">
       <div class="invalid-feedback" [class.is-shown]="isInvalid('username')">{{ error('username') }}</div>
     </div>
 
     <!-- Password -->
     <div class="mb-3">
-        <label class="form-label" for="inputPassword">Password <span class="required-text">*</span></label>
-        <app-password-field
-            formControlName="password"
-            inputId="inputPassword"
-            placeholder="Choose a Secure Password"
-            autocomplete="new-password"
-            [valid]="isValid('password')"
-            [invalid]="isInvalid('password')"
-            (blurred)="onBlur('password')" />
-        <div id="passwordHelp" class="form-text">
-            Min 8 characters, including uppercase, lowercase, number and special character (#?!&#64;$%^&amp;*-).
-        </div>
-        <div class="invalid-feedback" [class.is-shown]="isInvalid('password')">{{ error('password') }}</div>
+      <label class="form-label" for="inputPassword">Password <span class="required-text">*</span></label>
+      <app-password-field
+        formControlName="password"
+        inputId="inputPassword"
+        placeholder="Choose a Secure Password"
+        autocomplete="new-password"
+        [valid]="isValid('password')"
+        [invalid]="isInvalid('password')"
+        (blurred)="onBlur('password')" />
+      <div id="passwordHelp" class="form-text">
+        Min 8 characters, including uppercase, lowercase, number and special character (#?!&#64;$%^&amp;*-).
+      </div>
+      <div class="invalid-feedback" [class.is-shown]="isInvalid('password')">{{ error('password') }}</div>
     </div>
 
     <!-- Confirm password -->
     <div class="mb-3">
-        <label class="form-label" for="inputConfirmPassword">Confirm Password <span class="required-text">*</span></label>
-        <app-password-field
-            formControlName="confirm_password"
-            inputId="inputConfirmPassword"
-            placeholder="Repeat your password"
-            autocomplete="new-password"
-            [valid]="isValid('confirm_password')"
-            [invalid]="isInvalid('confirm_password')"
-            (blurred)="onBlur('confirm_password')" />
-        <div class="invalid-feedback" [class.is-shown]="isInvalid('confirm_password')">{{ error('confirm_password') }}</div>
+      <label class="form-label" for="inputConfirmPassword">Confirm Password <span class="required-text">*</span></label>
+      <app-password-field
+        formControlName="confirm_password"
+        inputId="inputConfirmPassword"
+        placeholder="Repeat your password"
+        autocomplete="new-password"
+        [valid]="isValid('confirm_password')"
+        [invalid]="isInvalid('confirm_password')"
+        (blurred)="onBlur('confirm_password')" />
+      <div class="invalid-feedback" [class.is-shown]="isInvalid('confirm_password')">{{ error('confirm_password') }}</div>
     </div>
 
     <!-- Birthdate -->
@@ -93,8 +93,8 @@
 
     <!-- Country -->
     <div class="mb-3">
-    <label class="form-label" for="inputCountry">Country <span class="required-text">*</span></label>
-    <app-typeahead
+      <label class="form-label" for="inputCountry">Country <span class="required-text">*</span></label>
+      <app-typeahead
         formControlName="country_id"
         inputId="inputCountry"
         placeholder="Start typing your country…"
@@ -103,98 +103,96 @@
         [invalid]="isInvalid('country_id')"
         (picked)="onCountryPicked($event)"
         (blurred)="onBlur('country_id')" />
-    <div class="invalid-feedback" [class.is-shown]="isInvalid('country_id')">{{ error('country_id') }}</div>
+      <div class="invalid-feedback" [class.is-shown]="isInvalid('country_id')">{{ error('country_id') }}</div>
     </div>
 
     <!-- Italian address helpers: region and province only narrow the search -->
     @if (isItaly()) {
-    <div class="row mb-md-3">
+      <div class="row mb-md-3">
         <div class="col-12 col-md-6 mb-3 mb-md-0">
-            <label class="form-label" for="selectRegion">Region</label>
-            <select formControlName="region_id" id="selectRegion" class="form-select"
-                    (change)="onRegionChange($any($event.target).value)">
-                <option value="">Select a region</option>
-                @for (region of regions(); track region.id) {
-                <option [value]="region.id">{{ region.name }}</option>
-                }
-            </select>
-            <div class="invalid-feedback" [class.is-shown]="isInvalid('region_id')">{{ error('region_id') }}</div>
+          <label class="form-label" for="selectRegion">Region</label>
+          <select formControlName="region_id" id="selectRegion" class="form-select"
+                  (change)="onRegionChange($any($event.target).value)">
+            <option value="">Select a region</option>
+            @for (region of regions(); track region.id) {
+              <option [value]="region.id">{{ region.name }}</option>
+            }
+          </select>
         </div>
         <div class="col-12 col-md-6 mb-3 mb-md-0">
-            <label class="form-label" for="selectProvince">Province</label>
-            <select formControlName="province_id" id="selectProvince" class="form-select"
-                    (change)="onProvinceChange($any($event.target).value)">
-                <option value="">{{ form.controls.region_id.value ? 'Select a province' : 'Select a region first' }}</option>
-                @for (province of provinces(); track province.id) {
-                <option [value]="province.id">{{ province.name }} ({{ province.code }})</option>
-                }
-            </select>
-            <div class="invalid-feedback" [class.is-shown]="isInvalid('province_id')">{{ error('province_id') }}</div>
+          <label class="form-label" for="selectProvince">Province</label>
+          <select formControlName="province_id" id="selectProvince" class="form-select"
+                  (change)="onProvinceChange($any($event.target).value)">
+            <option value="">{{ form.controls.region_id.value ? 'Select a province' : 'Select a region first' }}</option>
+            @for (province of provinces(); track province.id) {
+              <option [value]="province.id">{{ province.name }} ({{ province.code }})</option>
+            }
+          </select>
         </div>
-    </div>
+      </div>
 
-    <div class="mb-3">
+      <div class="mb-3">
         <label class="form-label" for="inputItalianMunicipality">Municipality <span class="required-text">*</span></label>
         <app-typeahead
-        #municipalityField
-        formControlName="italian_municipality_id"
-        inputId="inputItalianMunicipality"
-        placeholder="Start typing your municipality…"
-        [search]="searchMunicipalities"
-        [valid]="isValid('italian_municipality_id')"
-        [invalid]="isInvalid('italian_municipality_id')"
-        (picked)="onMunicipalityPicked($event)"
-        (blurred)="onBlur('italian_municipality_id')" />
+          #municipalityField
+          formControlName="italian_municipality_id"
+          inputId="inputItalianMunicipality"
+          placeholder="Start typing your municipality…"
+          [search]="searchMunicipalities"
+          [valid]="isValid('italian_municipality_id')"
+          [invalid]="isInvalid('italian_municipality_id')"
+          (picked)="onMunicipalityPicked($event)"
+          (blurred)="onBlur('italian_municipality_id')" />
         <div class="form-text">Picking a municipality fills in province, region and CAP.</div>
         <div class="invalid-feedback" [class.is-shown]="isInvalid('italian_municipality_id')">{{ error('italian_municipality_id') }}</div>
-    </div>
+      </div>
     }
 
     <!-- Street address -->
     <div class="mb-3">
       <label class="form-label" for="inputAddress">Street Address <span class="required-text">*</span></label>
       <input type="text" formControlName="street_address" id="inputAddress" class="form-control" placeholder="Main Street"
+             maxlength="255" autocomplete="address-line1"
              [ngClass]="cls('street_address')" (blur)="onBlur('street_address')">
       <div class="invalid-feedback" [class.is-shown]="isInvalid('street_address')">{{ error('street_address') }}</div>
     </div>
 
-    <!-- House number & CAP -->
+    <!-- House number & postal code -->
     <div class="row mb-md-3">
       <div class="col-12 col-md-6 mb-3 mb-md-0">
         <label class="form-label" for="inputHouseNumber">House Number <span class="required-text">*</span></label>
         <input type="text" formControlName="house_number" id="inputHouseNumber" class="form-control" placeholder="123"
-               [ngClass]="cls('house_number')" (blur)="onBlur('house_number')">
+               maxlength="10" [ngClass]="cls('house_number')" (blur)="onBlur('house_number')">
         <div class="invalid-feedback" [class.is-shown]="isInvalid('house_number')">{{ error('house_number') }}</div>
       </div>
-      <!-- Postal code (second column of the house-number row) -->
-        <div class="col-12 col-md-6 mb-3 mb-md-0">
+      <div class="col-12 col-md-6 mb-3 mb-md-0">
         <label class="form-label" for="inputCap">Postal Code <span class="required-text">*</span></label>
         <input type="text" formControlName="cap" id="inputCap" class="form-control"
-                autocomplete="postal-code"
-                [placeholder]="capPlaceholder()"
-                [ngClass]="cls('cap')"
-                (input)="onCapInput($any($event.target).value)"
-                (blur)="onBlur('cap')">
+               autocomplete="postal-code"
+               [placeholder]="capPlaceholder()"
+               [ngClass]="cls('cap')"
+               (input)="onCapInput($any($event.target).value)"
+               (blur)="onBlur('cap')">
         <div class="invalid-feedback" [class.is-shown]="isInvalid('cap')">{{ error('cap') }}</div>
 
         @if (capMatches().length) {
-            <div class="form-text">
+          <div class="form-text">
             Several municipalities use this CAP:
             @for (m of capMatches(); track m.id) {
-                <button type="button" class="btn btn-sm btn-outline-secondary ms-1 mb-1" (click)="pickMunicipality(m)">
+              <button type="button" class="btn btn-sm btn-outline-secondary ms-1 mb-1" (click)="pickMunicipality(m)">
                 {{ m.label ?? m.name }}
-                </button>
+              </button>
             }
-            </div>
+          </div>
         }
-        </div>
+      </div>
     </div>
 
     <!-- Locality -->
     <div class="mb-3">
       <label class="form-label" for="inputLocality">Locality</label>
       <input type="text" formControlName="locality" id="inputLocality" class="form-control" placeholder="City"
-             [ngClass]="cls('locality')" (blur)="onBlur('locality')">
+             maxlength="255" [ngClass]="cls('locality')" (blur)="onBlur('locality')">
       <div class="invalid-feedback" [class.is-shown]="isInvalid('locality')">{{ error('locality') }}</div>
     </div>
 
@@ -202,9 +200,48 @@
     <div class="mb-3">
       <label class="form-label" for="textareaAdditionalInfo">Additional Info</label>
       <textarea formControlName="additional_info" id="textareaAdditionalInfo" class="form-control" rows="3"
-                placeholder="More information here..."
+                maxlength="255" placeholder="More information here..."
                 [ngClass]="cls('additional_info')" (blur)="onBlur('additional_info')"></textarea>
       <div class="invalid-feedback" [class.is-shown]="isInvalid('additional_info')">{{ error('additional_info') }}</div>
+    </div>
+
+    <!-- Tax information -->
+    @if (isItaly()) {
+      <div class="mb-3">
+        <label class="form-label" for="inputBirthMunicipality">Municipality of Birth</label>
+        <app-typeahead
+          #birthMunicipalityField
+          formControlName="birth_municipality_id"
+          inputId="inputBirthMunicipality"
+          placeholder="Start typing the municipality…"
+          [search]="searchBirthMunicipalities"
+          (picked)="onBirthMunicipalityPicked($event)" />
+        <div class="invalid-feedback" [class.is-shown]="isInvalid('birth_municipality_id')">{{ error('birth_municipality_id') }}</div>
+    </div>
+}
+
+    <div class="mb-3">
+      <label class="form-label" for="inputTaxCode">
+        {{ isItaly() ? 'Tax Code (Codice Fiscale)' : 'Tax ID' }}
+        @if (isItaly()) { <span class="required-text">*</span> }
+      </label>
+      <input type="text" formControlName="tax_code" id="inputTaxCode" class="form-control text-uppercase"
+             autocomplete="off" spellcheck="false"
+             [attr.maxlength]="isItaly() ? 16 : 20"
+             [placeholder]="isItaly() ? 'RSSMRA85T10H501O' : 'Optional'"
+             [ngClass]="cls('tax_code')"
+             (input)="onTaxCodeInput($any($event.target).value)"
+             (blur)="onBlur('tax_code')">
+      @if (isItaly()) {
+        <div class="form-text">
+          Filled in automatically from your name, surname, date of birth, gender and municipality of birth.
+          @if (form.controls.gender.value === 'other') {
+            The Italian tax code only supports male or female, so enter it manually.
+          }
+        </div>
+      }
+        <div class="form-text">Born abroad? Enter your tax code manually above.</div>
+      <div class="invalid-feedback" [class.is-shown]="isInvalid('tax_code')">{{ error('tax_code') }}</div>
     </div>
 
     <!-- Credit -->

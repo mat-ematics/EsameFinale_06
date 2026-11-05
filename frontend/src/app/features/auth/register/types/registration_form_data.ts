@@ -21,6 +21,8 @@ export const COUNTRY_ITALY_ID = '1';
 
 export const ITALY_ISO = "IT";
 
+/** Any other country: 5-20 letters, digits, spaces, dots, slashes or hyphens */
+export const GENERIC_TAX_ID = /^[A-Z0-9][A-Z0-9 ./-]{3,18}[A-Z0-9]$/;
 
 /* --- TYPES & INTERFACES --- */
 
@@ -67,6 +69,9 @@ export interface RegistrationFormData {
     region_id?: string,           // UI only
     province_id?: string,         // UI only
     italian_municipality_id?: string,
+    birth_municipality_id?: string,   // UI only
+    birth_catastal_code?: string,     // UI only
+    tax_code: string,
     street_address: string,
     house_number: string,
     cap: string,
@@ -122,6 +127,9 @@ export function extractRegistrationFormData(form: HTMLFormElement): Registration
         region_id: (data.get('region_id') as string) ?? "",
         province_id: (data.get('province_id') as string) ?? "",
         italian_municipality_id: (data.get("italian_municipality_id") as string) ?? '',
+        birth_municipality_id: (data.get("birth_municipality_id") as string) ?? '',
+        birth_catastal_code: (data.get("birth_catastal_code") as string) ?? '',
+        tax_code: data.get('tax_code') as string,
         street_address: data.get("street_address") as string,
         house_number: data.get("house_number") as string,
         cap: data.get("cap") as string,

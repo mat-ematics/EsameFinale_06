@@ -14,7 +14,7 @@
 import { COUNTRY_ITALY_ID, ITALY_ISO, RegistrationFormData } from "../types/registration_form_data.js";
 import { FieldName } from "../types/registration_form_data.js";
 import { ErrorCodes } from "./error_codes.js";
-import { validateBirthDate, validateCAP, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateText, validateUsername } from "./field_validators.js";
+import { validateBirthDate, validateCAP, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateTaxCode, validateText, validateUsername } from "./field_validators.js";
 import { createValidFieldResult, FieldValidationResult, FormFieldsValidationResult, FormValidationResult } from "./validation_types.js";
 
 
@@ -49,6 +49,9 @@ const fieldValidatorsMap = {
         validateText(data.locality ?? '', { required: false }),
     additional_info: (data: RegistrationFormData) =>
         validateText(data.additional_info ?? '', { required: false }),
+    tax_code: (data: RegistrationFormData) => validateTaxCode(data),
+    birth_municipality_id: () => createValidFieldResult(),
+    birth_catastal_code: () => createValidFieldResult(),
     credit: (data: RegistrationFormData) => validateCredit(data.credit),
     currency: (data: RegistrationFormData) => validateSelect(data.currency),
 } as const;

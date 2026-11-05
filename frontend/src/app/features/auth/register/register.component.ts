@@ -16,6 +16,10 @@ import { POSTAL_CODE_FORMATS } from './validation/postal_codes';
 import { validateRegistrationField, validateRegistrationForm } from './validation/form_validator';
 import { FormFieldsValidationResult } from './validation/validation_types';
 import { getFieldErrorMessage } from './ui/form_errors';
+import { decodeTaxCode, generateTaxCode } from './validation/tax_code';
+
+/** Fields whose blur may complete or refresh the tax code */
+const TAX_CODE_SOURCES: FieldName[] = ['name', 'surname', 'birthdate', 'gender'];
 
 @Component({
   selector: 'app-register',
@@ -36,6 +40,9 @@ export class RegisterComponent {
     country_iso: [''],                                   // UI only
     region_id: [{ value: '', disabled: true }],          // UI only
     province_id: [{ value: '', disabled: true }],        // UI only
+    birth_municipality_id: [{ value: '', disabled: true }],   // UI only
+    birth_catastal_code: [''],                                // UI only
+    tax_code: [''],
     italian_municipality_id: [{ value: '', disabled: true }],
     street_address: [''], house_number: [''], cap: [''],
     locality: [''], additional_info: [''],
@@ -68,6 +75,14 @@ export class RegisterComponent {
   readonly searchCountries = (term: string) => this.lookups.searchCountries(term);
   readonly searchMunicipalities = (term: string) =>
     this.lookups.searchMunicipalities(term, this.form.controls.province_id.value || undefined);
+
+  /* --------- TAX CODE STATE --------- */
+  /** False once the user types the code by hand: autofill then never overwrites it */
+  private taxCodeAuto = true;
+  private birthField = viewChild<TypeaheadComponent>('birthMunicipalityField');
+
+  // Birth municipality is not narrowed by the residence province
+  readonly searchBirthMunicipalities = (term: string) => this.lookups.searchMunicipalities(term);
 
   constructor() {
     // A complete CAP (5 digits) finds its municipality: one match fills everything
@@ -117,8 +132,8 @@ export class RegisterComponent {
 
   onCountryPicked(item: LookupItem | null) {
     this.form.controls.country_iso.setValue((item as CountryItem | null)?.iso ?? '');
+    this.results.update(r => ({ ...r, cap: undefined, tax_code: undefined }));   // both rules just changed
     this.syncItalyFields();
-    this.results.update(r => ({ ...r, cap: undefined }));   // the format rule just changed
   }
 
   /** Enables or resets the Italy-only fields depending on the chosen country */
@@ -129,14 +144,21 @@ export class RegisterComponent {
       this.ensureItalyLists();
       c.region_id.enable({ emitEvent: false });
       c.italian_municipality_id.enable({ emitEvent: false });
+      c.birth_municipality_id.enable({ emitEvent: false });
       c.province_id[c.region_id.value ? 'enable' : 'disable']({ emitEvent: false });
+      this.refreshTaxCode();               // the data may already be there
       return;
     }
 
-    this.form.patchValue({ region_id: '', province_id: '', italian_municipality_id: '' });
+    this.form.patchValue({
+      region_id: '', province_id: '', italian_municipality_id: '',
+      birth_municipality_id: '', birth_catastal_code: '',
+    });
     c.region_id.disable({ emitEvent: false });
     c.province_id.disable({ emitEvent: false });
     c.italian_municipality_id.disable({ emitEvent: false });
+    c.birth_municipality_id.disable({ emitEvent: false });
+    if (this.taxCodeAuto) c.tax_code.setValue('');   // a generated code makes no sense here
     this.selectedMunicipality.set(null);
     this.capMatches.set([]);
     this.results.update(r => ({ ...r, italian_municipality_id: undefined }));
@@ -224,6 +246,76 @@ export class RegisterComponent {
     else this.capMatches.set(items);                   // several: let the user choose
   }
 
+  /* --------- Tax code --------- */
+
+  private revalidate(...fields: FieldName[]) {
+    const data = this.data();
+    this.results.update(r => {
+      const next = { ...r } as Partial<FormFieldsValidationResult>;
+      for (const field of fields) next[field] = validateRegistrationField(field, data);
+      return next;
+    });
+  }
+
+  private clearResult(field: FieldName) {
+    this.results.update(r => ({ ...r, [field]: undefined }));
+  }
+
+  /** Forward: personal data -> tax code (only while the user is not typing it by hand) */
+  private refreshTaxCode() {
+    if (this.taxCodeAuto) {
+      const d = this.data();
+      const code = this.isItaly()
+        ? generateTaxCode({
+            name: d.name, surname: d.surname, birthdate: d.birthdate,
+            gender: d.gender, birthPlaceCode: d.birth_catastal_code ?? '',
+          })
+        : null;
+
+      // null clears a previously generated code that is no longer computable
+      this.form.controls.tax_code.setValue(code ?? '');
+      if (code) this.revalidate('tax_code'); else this.clearResult('tax_code');
+    } else if (this.results().tax_code) {
+      this.revalidate('tax_code');         // a shown result may have gone stale
+    }
+  }
+
+  onBirthMunicipalityPicked(item: LookupItem | null) {
+    this.form.controls.birth_catastal_code.setValue((item as MunicipalityItem | null)?.catastal_code ?? '');
+    this.refreshTaxCode();
+  }
+
+  onTaxCodeInput(value: string) {
+    const code = value.trim().toUpperCase();
+    this.taxCodeAuto = code === '';        // typing pauses autofill, clearing resumes it
+    if (this.isItaly() && code.length === 16) this.fillFromTaxCode(code);
+  }
+
+  /** Backward: tax code -> birth date, gender and birth municipality (empty fields only) */
+  private fillFromTaxCode(code: string) {
+    const decoded = decodeTaxCode(code);
+    if (!decoded) return;
+
+    const c = this.form.controls;
+    const filled: FieldName[] = [];
+
+    if (!c.birthdate.value) { c.birthdate.setValue(decoded.birthdate); filled.push('birthdate'); }
+    if (!c.gender.value)    { c.gender.setValue(decoded.gender); filled.push('gender'); }
+    if (filled.length) this.revalidate(...filled);
+
+    if (!c.birth_municipality_id.value && !decoded.abroad) {
+      this.lookups.municipalityByCatastalCode(decoded.birthPlaceCode).subscribe({
+        next: items => {
+          // The user may have picked one while the request was running
+          if (items.length !== 1 || this.form.controls.birth_municipality_id.value) return;
+          this.birthField()?.setSelection(items[0]);
+          this.form.controls.birth_catastal_code.setValue(items[0].catastal_code);
+        },
+        error: () => {},                   // a convenience: failing silently is fine
+      });
+    }
+  }
+
   /* --------- Events --------- */
 
   onBlur(field: FieldName) {
@@ -240,6 +332,7 @@ export class RegisterComponent {
     }
 
     this.results.set(next);
+    if (TAX_CODE_SOURCES.includes(field)) this.refreshTaxCode();
     this.serverErrors.update(({ [field]: _removed, ...rest }) => rest);
   }
 
@@ -264,8 +357,8 @@ export class RegisterComponent {
   private toPayload(d: RegistrationFormData) {
     // UI-only fields never reach the server
     const { confirm_password, country_iso, region_id, province_id,
+            birth_municipality_id, birth_catastal_code, tax_code,
             italian_municipality_id, locality, additional_info, ...rest } = d;
-
     return {
       ...rest,
       username: d.username.trim(),
@@ -277,6 +370,7 @@ export class RegisterComponent {
       ...(italian_municipality_id ? { italian_municipality_id } : {}),
       ...(locality?.trim() ? { locality: locality.trim() } : {}),
       ...(additional_info?.trim() ? { additional_info: additional_info.trim() } : {}),
+      ...(tax_code.trim() ? { tax_code: tax_code.trim().toUpperCase() } : {}),
     };
   }
 

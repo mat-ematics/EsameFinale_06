@@ -5,6 +5,7 @@ namespace App\Http\Requests\Authentication;
 use App\Models\Location\Country;
 use App\Models\User\User;
 use App\Rules\PostalCodeRule;
+use App\Rules\TaxCode;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as RulesPassword;
@@ -21,9 +22,15 @@ class RegisterRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $merge = [];
         if ($this->has('cap')) {
-            $this->merge(['cap' => strtoupper(trim((string) $this->input('cap')))]);
+            $merge['cap'] = strtoupper(trim((string) $this->input('cap')));
         }
+        if ($this->filled('tax_code')) {
+            $merge['tax_code'] = strtoupper(trim((string) $this->input('tax_code')));
+        }
+
+        $this->merge($merge);
     }
 
     /**
@@ -70,6 +77,13 @@ class RegisterRequest extends FormRequest
             'house_number' => 'required|string|max:10',
             'locality' => 'nullable|string|max:255',
             'additional_info' => 'nullable|string|max:255',
+
+            'tax_code' => [
+                Rule::requiredIf(fn () => $this->countryIso() === 'IT'),
+                'nullable', 'string', 'max:20',
+                new TaxCode($this->countryIso()),
+                Rule::unique('user_profiles', 'tax_code'),
+            ],
 
             //Informazioni Credito
             'credit' => 'required|numeric|min:0',

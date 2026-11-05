@@ -102,6 +102,17 @@ export const FieldErrorMessagesMap: FieldErrorMessages = {
     },
     locality: {}, //optional
     additional_info: {}, //optional
+    tax_code: {
+        REQUIRED: "Tax code is required",
+        INVALID_TAX_CODE: "Enter a valid tax code",
+        TAX_CODE_NAME_MISMATCH: "The tax code does not match your name",
+        TAX_CODE_SURNAME_MISMATCH: "The tax code does not match your surname",
+        TAX_CODE_BIRTHDATE_MISMATCH: "The tax code does not match your date of birth",
+        TAX_CODE_GENDER_MISMATCH: "The tax code does not match your gender",
+        TAX_CODE_BIRTHPLACE_MISMATCH: "The tax code does not match the municipality of birth",
+    },
+    birth_municipality_id: {},   // helper only
+    birth_catastal_code: {},     // helper only
     credit: {
         REQUIRED: "Credit is required",
         INVALID_CREDIT: "Credit must be a positive amount",

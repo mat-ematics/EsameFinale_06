@@ -20,6 +20,7 @@ class UserProfile extends Model
         'email',
         'birthdate',
         'gender',
+        'tax_code',
     ];
 
     /* --------- RELAZIONI ---------*/

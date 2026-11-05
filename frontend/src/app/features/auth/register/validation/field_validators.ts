@@ -11,8 +11,10 @@
 
 import { FieldValidationResult, validFieldResult } from "./validation_types.js";
 import { CAPPattern, emailPattern, getAge, isEmpty, namePattern, passwordPattern, safeTrim, usernamePattern } from "../utils/helpers.js";
-import { ErrorCodes, ValidationErrorCode } from "./error_codes.js";
+import { ErrorCodes, TAX_CODE_MISMATCH_CODES, ValidationErrorCode } from "./error_codes.js";
 import { postalCodePattern } from "./postal_codes.js";
+import { GENERIC_TAX_ID, ITALY_ISO, RegistrationFormData } from "../types/registration_form_data.js";
+import { decodeTaxCode, taxCodeMismatches } from "./tax_code.js";
 
 
 /* --- CONSTANTS --- */
@@ -236,6 +238,43 @@ export const validateCAP = (cap: string, countryIso: string): FieldValidationRes
         pattern: postalCodePattern(countryIso),
         formatErrorCode: ErrorCodes.INVALID_CAP,
     });
+}
+
+/**
+ * Validate Tax Code
+ *
+ * Italy: required, valid structure and check character, and consistent with
+ * the name, surname, birth date, gender and (when chosen) birth municipality.
+ * Any other country: optional, free-form with a lenient pattern.
+ */
+export function validateTaxCode(data: RegistrationFormData): FieldValidationResult {
+    const code = safeTrim(data.tax_code).toUpperCase();
+    const italy = data.country_iso === ITALY_ISO;
+
+    if (isEmpty(code)) {
+        return italy ? { isValid: false, errorCode: ErrorCodes.REQUIRED } : validFieldResult;
+    }
+
+    if (!italy) {
+        return GENERIC_TAX_ID.test(code)
+            ? validFieldResult
+            : { isValid: false, errorCode: ErrorCodes.INVALID_TAX_CODE };
+    }
+
+    const decoded = decodeTaxCode(code);
+    if (!decoded) return { isValid: false, errorCode: ErrorCodes.INVALID_TAX_CODE };
+
+    const mismatch = taxCodeMismatches(decoded, {
+        name: data.name,
+        surname: data.surname,
+        birthdate: data.birthdate,
+        gender: data.gender,
+        birthPlaceCode: data.birth_catastal_code,
+    })[0];
+
+    return mismatch
+        ? { isValid: false, errorCode: TAX_CODE_MISMATCH_CODES[mismatch] }
+        : validFieldResult;
 }
 
 /**

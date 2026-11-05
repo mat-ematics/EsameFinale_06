@@ -37,6 +37,7 @@ class ItalianMunicipalityService {
                 'italian_municipalities.id',
                 'italian_municipalities.name',
                 'italian_municipalities.cap',
+                'italian_municipalities.catastal_code',
                 'italian_municipalities.province_id',
                 'p.region_id',
                 'p.code as province_code',
@@ -44,9 +45,11 @@ class ItalianMunicipalityService {
             ->when($data['province_id'] ?? null,
                 fn ($q, $id) => $q->where('italian_municipalities.province_id', $id));
 
-        if (!empty($data['cap'])) {
+        if (!empty($data['catastal_code'])) {
+            $query->where('italian_municipalities.catastal_code', strtoupper($data['catastal_code']));
+        } elseif (!empty($data['cap'])) {
             $query->where('italian_municipalities.cap', $data['cap'])
-                ->orderBy('italian_municipalities.name');
+            ->orderBy('italian_municipalities.name');
         } else {
             $like = addcslashes($data['search'], '%_\\');
             $query->where('italian_municipalities.name', 'like', "%{$like}%")
@@ -62,6 +65,7 @@ class ItalianMunicipalityService {
                 'name'        => $m->name,
                 'label'       => $m->province_code ? "{$m->name} ({$m->province_code})" : $m->name,
                 'cap'         => $m->cap,
+                'catastal_code' => $m->catastal_code,
                 'province_id' => $m->province_id,
                 'region_id'   => $m->region_id,
             ]);

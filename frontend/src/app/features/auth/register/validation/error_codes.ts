@@ -6,10 +6,10 @@
  * error messages in the UI layer.
  */
 
-
 /* --- IMPORTS --- */
 //Eventual imports here
 
+import { TaxCodeMismatch } from "./tax_code.js";
 
 /* --- CONSTANTS --- */
 
@@ -43,7 +43,22 @@ export const ErrorCodes = {
     INVALID_CREDIT: "INVALID_CREDIT",
     MUNICIPALITY_REQUIRED: "MUNICIPALITY_REQUIRED",
     PASSWORD_MISMATCH: "PASSWORD_MISMATCH",
+    INVALID_TAX_CODE: "INVALID_TAX_CODE",
+    TAX_CODE_NAME_MISMATCH: "TAX_CODE_NAME_MISMATCH",
+    TAX_CODE_SURNAME_MISMATCH: "TAX_CODE_SURNAME_MISMATCH",
+    TAX_CODE_BIRTHDATE_MISMATCH: "TAX_CODE_BIRTHDATE_MISMATCH",
+    TAX_CODE_GENDER_MISMATCH: "TAX_CODE_GENDER_MISMATCH",
+    TAX_CODE_BIRTHPLACE_MISMATCH: "TAX_CODE_BIRTHPLACE_MISMATCH",
 } as const;
+
+export const TAX_CODE_MISMATCH_CODES: Record<TaxCodeMismatch, ValidationErrorCode> = {
+    name: ErrorCodes.TAX_CODE_NAME_MISMATCH,
+    surname: ErrorCodes.TAX_CODE_SURNAME_MISMATCH,
+    birthdate: ErrorCodes.TAX_CODE_BIRTHDATE_MISMATCH,
+    gender: ErrorCodes.TAX_CODE_GENDER_MISMATCH,
+    birthplace: ErrorCodes.TAX_CODE_BIRTHPLACE_MISMATCH,
+} as const;
+
 
 
 /* --- TYPES & INTERFACES --- */

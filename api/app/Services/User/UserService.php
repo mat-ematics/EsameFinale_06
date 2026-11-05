@@ -74,6 +74,7 @@ class UserService {
                 'email' => $data['email'],
                 'birthdate' => $data['birthdate'],
                 'gender' => $data['gender'],
+                'tax_code' => $data['tax_code'] ?? null,
             ]);
 
             //Aggiunta Ruoli all'Utente

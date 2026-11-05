@@ -22,6 +22,7 @@ return new class extends Migration
                 $table->string('email')->unique();
                 $table->date('birthdate');
                 $table->enum('gender', ['male', 'female', 'other']);
+                $table->string('tax_code', 20)->nullable()->unique();
                 $table->timestamps();
                 $table->softDeletes();
             });

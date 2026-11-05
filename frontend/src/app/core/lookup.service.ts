@@ -8,6 +8,7 @@ export type RegionItem = LookupItem;
 export interface ProvinceItem extends LookupItem { region_id: number; code: string }
 export interface MunicipalityItem extends LookupItem {
   cap: string;
+  catastal_code: string;
   province_id: number | null;
   region_id: number | null;
 }
@@ -31,6 +32,10 @@ export class LookupService extends ApiService {
     return this.list<MunicipalityItem>('italian-municipalities', { cap });
   }
 
+  municipalityByCatastalCode(code: string): Observable<MunicipalityItem[]> {
+    return this.list<MunicipalityItem>('italian-municipalities', { catastal_code: code });
+  }
+
   regions(): Observable<RegionItem[]> {
     return this.list<RegionItem>('italian-regions', { compact: 1 });
   }
@@ -38,6 +43,7 @@ export class LookupService extends ApiService {
   provinces(): Observable<ProvinceItem[]> {
     return this.list<ProvinceItem>('italian-provinces', { compact: 1 });
   }
+  
 
   private list<T>(resource: string, params: Record<string, string | number>): Observable<T[]> {
     return this.request<T[]>([resource], 'GET', null, params).pipe(
