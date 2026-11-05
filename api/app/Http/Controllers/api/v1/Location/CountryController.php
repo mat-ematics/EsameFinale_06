@@ -26,7 +26,7 @@ class CountryController extends Controller
     public function index(Request $request)
     {
         if ($request->filled('search')) {
-            return $this->lookupSearch(Country::class, $request);
+            return $this->lookupSearch(Country::class, $request, extra: ['iso']);
         }
 
         $countries = $this->countryService->getCountryCollectionInfo(Country::all(), Gate::check('isAdmin'));

@@ -1,19 +1,21 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
+import { Subject, catchError, distinctUntilChanged, finalize, of, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth.service';
 import { apiErrorMessage } from '../../../core/api.service';
-import { COUNTRY_ITALY_ID, FieldName, RegistrationFormData } from './types/registration_form_data';
+import { CountryItem, LookupItem, LookupService, MunicipalityItem, ProvinceItem, RegionItem } from '../../../core/lookup.service';
+import { PasswordFieldComponent } from '../../../shared/password-field/password-field.component';
+import { TypeaheadComponent } from '../../../shared/typeahead/typeahead.component';
+import { FieldName, ITALY_ISO, RegistrationFormData } from './types/registration_form_data';
+import { ErrorCodes } from './validation/error_codes';
+import { POSTAL_CODE_FORMATS } from './validation/postal_codes';
 import { validateRegistrationField, validateRegistrationForm } from './validation/form_validator';
 import { FormFieldsValidationResult } from './validation/validation_types';
 import { getFieldErrorMessage } from './ui/form_errors';
-import { PasswordFieldComponent } from '../../../shared/password-field/password-field.component.js';
-import { LookupService } from '../../../core/lookup.service.js';
-import { TypeaheadComponent } from '../../../shared/typeahead/typeahead.component.js';
 
 @Component({
   selector: 'app-register',
@@ -27,41 +29,55 @@ export class RegisterComponent {
   private router = inject(Router);
   private lookups = inject(LookupService);
 
-  /** Values only: validation stays in your validators, not in Angular's */
   readonly form = this.fb.group({
     name: [''], surname: [''], email: [''], username: [''], password: [''], confirm_password: [''],
-    birthdate: [''], gender: [''], country_id: [''],
+    birthdate: [''], gender: [''],
+    country_id: [''],
+    country_iso: [''],                                   // UI only
+    region_id: [{ value: '', disabled: true }],          // UI only
+    province_id: [{ value: '', disabled: true }],        // UI only
     italian_municipality_id: [{ value: '', disabled: true }],
     street_address: [''], house_number: [''], cap: [''],
     locality: [''], additional_info: [''],
     credit: [''], currency: ['EUR'],
   });
 
-  /** Latest validation result per field (replaces the DOM is-valid/is-invalid toggling) */
   readonly results = signal<Partial<FormFieldsValidationResult>>({});
-  /** Errors returned by Laravel (422), keyed by field */
   readonly serverErrors = signal<Record<string, string>>({});
   readonly formError = signal<string | null>(null);
   readonly submitting = signal(false);
 
-  readonly searchCountries = (term: string) => this.lookups.searchCountries(term);
-  readonly searchMunicipalities = (term: string) => this.lookups.searchMunicipalities(term);
+  /* --------- Italian address state --------- */
+  private countryIso = toSignal(this.form.controls.country_iso.valueChanges, { initialValue: '' });
+  private regionId = toSignal(this.form.controls.region_id.valueChanges, { initialValue: '' });
 
+  protected isItaly = computed(() => this.countryIso() === ITALY_ISO);
+  protected regions = signal<RegionItem[]>([]);
+  private allProvinces = signal<ProvinceItem[]>([]);
+  protected provinces = computed(() =>
+    this.allProvinces().filter(p => String(p.region_id) === this.regionId()));
+  protected capMatches = signal<MunicipalityItem[]>([]);
+  protected capPlaceholder = computed(() => POSTAL_CODE_FORMATS[this.countryIso()]?.example ?? 'Postal code');
+
+  private selectedMunicipality = signal<MunicipalityItem | null>(null);
+  private municipalityField = viewChild<TypeaheadComponent>('municipalityField');
+  private listsRequested = false;
+  private capLookup$ = new Subject<string>();
+
+  // Arrow functions, so `this` stays bound when the typeahead calls them
+  readonly searchCountries = (term: string) => this.lookups.searchCountries(term);
+  readonly searchMunicipalities = (term: string) =>
+    this.lookups.searchMunicipalities(term, this.form.controls.province_id.value || undefined);
 
   constructor() {
-    // Municipality is only enabled for Italy (was the 'input' listener in register.ts)
-    this.form.controls.country_id.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(id => {
-        const municipality = this.form.controls.italian_municipality_id;
-        if (id === COUNTRY_ITALY_ID) {
-          municipality.enable();
-        } else {
-          municipality.reset('');
-          municipality.disable();
-        }
-        this.results.update(r => ({ ...r, italian_municipality_id: undefined }));
-      });
+    // A complete CAP (5 digits) finds its municipality: one match fills everything
+    this.capLookup$.pipe(
+      distinctUntilChanged(),
+      switchMap(cap => /^\d{5}$/.test(cap)
+        ? this.lookups.municipalitiesByCap(cap).pipe(catchError(() => of([] as MunicipalityItem[])))
+        : of(null)),
+      takeUntilDestroyed(),
+    ).subscribe(items => this.onCapMatches(items));
   }
 
   private data(): RegistrationFormData {
@@ -85,8 +101,127 @@ export class RegisterComponent {
   error(field: FieldName): string {
     const server = this.serverErrors()[field];
     if (server) return server;
+
     const result = this.results()[field];
-    return result && !result.isValid ? getFieldErrorMessage(field, result.errorCode) : '';
+    if (!result || result.isValid) return '';
+
+    // The postal code message includes the format of the selected country
+    if (field === 'cap' && result.errorCode === ErrorCodes.INVALID_CAP) {
+      const example = POSTAL_CODE_FORMATS[this.countryIso()]?.example;
+      return example ? `Enter a valid postal code (e.g. ${example})` : 'Enter a valid postal code';
+    }
+    return getFieldErrorMessage(field, result.errorCode);
+  }
+
+  /* --------- Country --------- */
+
+  onCountryPicked(item: LookupItem | null) {
+    this.form.controls.country_iso.setValue((item as CountryItem | null)?.iso ?? '');
+    this.syncItalyFields();
+    this.results.update(r => ({ ...r, cap: undefined }));   // the format rule just changed
+  }
+
+  /** Enables or resets the Italy-only fields depending on the chosen country */
+  private syncItalyFields() {
+    const c = this.form.controls;
+
+    if (this.isItaly()) {
+      this.ensureItalyLists();
+      c.region_id.enable({ emitEvent: false });
+      c.italian_municipality_id.enable({ emitEvent: false });
+      c.province_id[c.region_id.value ? 'enable' : 'disable']({ emitEvent: false });
+      return;
+    }
+
+    this.form.patchValue({ region_id: '', province_id: '', italian_municipality_id: '' });
+    c.region_id.disable({ emitEvent: false });
+    c.province_id.disable({ emitEvent: false });
+    c.italian_municipality_id.disable({ emitEvent: false });
+    this.selectedMunicipality.set(null);
+    this.capMatches.set([]);
+    this.results.update(r => ({ ...r, italian_municipality_id: undefined }));
+  }
+
+  /** Regions and provinces are small: load them once, only for Italian addresses */
+  private ensureItalyLists() {
+    if (this.listsRequested) return;
+    this.listsRequested = true;
+
+    this.lookups.regions().subscribe({
+      next: regions => this.regions.set(regions),
+      error: () => (this.listsRequested = false),
+    });
+    this.lookups.provinces().subscribe({
+      next: provinces => this.allProvinces.set(provinces),
+      error: () => (this.listsRequested = false),
+    });
+  }
+
+  /* --------- Region -> Province -> Municipality --------- */
+
+  onRegionChange(regionId: string) {
+    const c = this.form.controls;
+
+    c.province_id.setValue('');                        // the province list changed
+    c.province_id[regionId ? 'enable' : 'disable']({ emitEvent: false });
+
+    const municipality = this.selectedMunicipality();
+    if (municipality && String(municipality.region_id) !== regionId) this.clearMunicipality();
+  }
+
+  onProvinceChange(provinceId: string) {
+    const municipality = this.selectedMunicipality();
+    if (municipality && String(municipality.province_id) !== provinceId) this.clearMunicipality();
+  }
+
+  onMunicipalityPicked(item: LookupItem | null) {
+    if (item) this.applyMunicipality(item as MunicipalityItem);
+    else this.selectedMunicipality.set(null);
+  }
+
+  /** Municipality -> province, region and CAP */
+  private applyMunicipality(m: MunicipalityItem) {
+    this.selectedMunicipality.set(m);
+    this.capMatches.set([]);
+
+    this.form.patchValue({
+      region_id: m.region_id ? String(m.region_id) : '',
+      province_id: m.province_id ? String(m.province_id) : '',
+      cap: m.cap,
+    });
+    this.syncItalyFields();                            // province becomes enabled
+    this.results.update(r => ({
+      ...r,
+      cap: validateRegistrationField('cap', this.data()),
+    }));
+  }
+
+  /** Selection made from code (the CAP lookup or a chip), not typed by the user */
+  protected pickMunicipality(m: MunicipalityItem) {
+    this.municipalityField()?.setSelection(m);
+    this.applyMunicipality(m);
+  }
+
+  private clearMunicipality() {
+    this.municipalityField()?.setSelection(null);
+    this.form.controls.italian_municipality_id.setValue('');
+    this.selectedMunicipality.set(null);
+    this.capMatches.set([]);
+  }
+
+  /* --------- CAP -> Municipality --------- */
+
+  onCapInput(value: string) {
+    this.capLookup$.next(this.isItaly() ? value.trim() : '');
+  }
+
+  private onCapMatches(items: MunicipalityItem[] | null) {
+    this.capMatches.set([]);
+    // Never override a municipality the user already chose
+    if (!items?.length || this.selectedMunicipality()) return;
+
+    if (items.length === 1) this.pickMunicipality(items[0]);
+    else this.capMatches.set(items);                   // several: let the user choose
   }
 
   /* --------- Events --------- */
@@ -95,19 +230,16 @@ export class RegisterComponent {
     const data = this.data();
     const next = { ...this.results(), [field]: validateRegistrationField(field, data) } as Partial<FormFieldsValidationResult>;
 
-    // The country affects whether the municipality is required
     if (field === 'country_id') {
       next.italian_municipality_id = validateRegistrationField('italian_municipality_id', data);
+      if (this.results().cap) next.cap = validateRegistrationField('cap', data);
     }
 
-    // The confirmation depends on the password: re-check it if it was already validated
     if (field === 'password' && this.results().confirm_password) {
-        next.confirm_password = validateRegistrationField('confirm_password', data);
+      next.confirm_password = validateRegistrationField('confirm_password', data);
     }
 
     this.results.set(next);
-
-    // The user is editing the field: drop the old server error
     this.serverErrors.update(({ [field]: _removed, ...rest }) => rest);
   }
 
@@ -124,29 +256,31 @@ export class RegisterComponent {
     this.auth.register(this.toPayload(data))
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        // The backend logs the user in on register, so a token means we can go straight in
         next: () => this.router.navigate([this.auth.isLoggedIn() ? '/browse' : '/login']),
         error: err => this.handleError(err),
       });
   }
 
   private toPayload(d: RegistrationFormData) {
-    const { italian_municipality_id, locality, additional_info, confirm_password, ...rest } = d;
+    // UI-only fields never reach the server
+    const { confirm_password, country_iso, region_id, province_id,
+            italian_municipality_id, locality, additional_info, ...rest } = d;
+
     return {
-        ...rest,
-        username: d.username.trim(),
-        name: d.name.trim(),
-        surname: d.surname.trim(),
-        email: d.email.trim(),
-        credit: Number(d.credit),
-        italian_municipality_id: italian_municipality_id || null,
-        locality: locality?.trim() || null,
-        additional_info: additional_info?.trim() || null,
+      ...rest,
+      username: d.username.trim(),
+      name: d.name.trim(),
+      surname: d.surname.trim(),
+      email: d.email.trim(),
+      cap: d.cap.trim().toUpperCase(),
+      credit: Number(d.credit),
+      ...(italian_municipality_id ? { italian_municipality_id } : {}),
+      ...(locality?.trim() ? { locality: locality.trim() } : {}),
+      ...(additional_info?.trim() ? { additional_info: additional_info.trim() } : {}),
     };
   }
 
   private handleError(err: unknown) {
-    // Laravel validation: { error: 'Validation failed', data: { field: ['msg', ...] } }
     if (err instanceof HttpErrorResponse && err.status === 422 && err.error?.data) {
       const flat = Object.fromEntries(
         Object.entries(err.error.data as Record<string, string[]>).map(([k, v]) => [k, v[0]])

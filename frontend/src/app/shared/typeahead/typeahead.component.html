@@ -40,7 +40,7 @@
           [attr.aria-selected]="i === active()"
           (mousedown)="$event.preventDefault()"
           (click)="select(item)"
-          (mouseenter)="active.set(i)">{{ item.name }}</li>
+          (mouseenter)="active.set(i)">{{ item.label ?? item.name }}</li>
       }
     }
   </ul>

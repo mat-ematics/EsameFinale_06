@@ -17,7 +17,7 @@ return new class extends Migration
                 $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
                 $table->foreignId('country_id')->nullable()->constrained('countries')->nullOnDelete();
                 $table->foreignId('italian_municipality_id')->nullable()->constrained('italian_municipalities')->nullOnDelete();
-                $table->char('cap', 5);
+                $table->string('cap', 12);
                 $table->string('street_address');
                 $table->string('house_number', 10);
                 $table->string('locality')->nullable(); //Frazione, Paese...

@@ -23,8 +23,16 @@ class ItalianRegionController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->boolean('compact')) {
+            return AppHelpers::jsonResponse(
+                'Regions Successfully Retrieved',
+                200,
+                ItalianRegion::orderBy('name')->get(['id', 'name'])->toArray()
+            );
+        }
+
         $regions = $this->regionService->getItalianRegionCollectionInfo(ItalianRegion::all(), Gate::check('isAdmin'));
         return AppHelpers::jsonResponse(
             empty($regions) ? 'Regions Successfully Retrieved!' : "There are no Regions present at the moment",

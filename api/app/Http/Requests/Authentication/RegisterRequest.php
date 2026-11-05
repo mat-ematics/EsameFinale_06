@@ -2,12 +2,30 @@
 
 namespace App\Http\Requests\Authentication;
 
+use App\Models\Location\Country;
 use App\Models\User\User;
+use App\Rules\PostalCodeRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as RulesPassword;
 
 class RegisterRequest extends FormRequest
 {
+
+    private ?string $countryIso = null;
+
+    private function countryIso(): ?string
+    {
+        return $this->countryIso ??= Country::whereKey($this->input('country_id'))->value('iso');
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('cap')) {
+            $this->merge(['cap' => strtoupper(trim((string) $this->input('cap')))]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -42,8 +60,12 @@ class RegisterRequest extends FormRequest
 
             //Informazioni Indirizzo
             'country_id' => 'required|integer|exists:countries,id',
-            'italian_municipality_id' => 'required_if:country_id,1|integer|exists:italian_municipalities,id',
-            'cap' => 'required|string|size:5',
+            'italian_municipality_id' => [
+                Rule::requiredIf(fn () => $this->countryIso() === 'IT'),
+                Rule::prohibitedIf(fn () => $this->countryIso() !== 'IT'),
+                'nullable', 'integer', 'exists:italian_municipalities,id',
+            ],
+            'cap' => ['required', 'string', 'max:12', new PostalCodeRule($this->countryIso())],
             'street_address' => 'required|string|max:255',
             'house_number' => 'required|string|max:10',
             'locality' => 'nullable|string|max:255',

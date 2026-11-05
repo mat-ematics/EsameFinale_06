@@ -97,8 +97,8 @@ export const FieldErrorMessagesMap: FieldErrorMessages = {
         REQUIRED: "House number is required",
     },
     cap: {
-        REQUIRED: "CAP is required",
-        INVALID_CAP: "CAP must be 5 digits",
+        REQUIRED: "Postal code is required",
+        INVALID_CAP: "Enter a valid postal code",
     },
     locality: {}, //optional
     additional_info: {}, //optional

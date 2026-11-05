@@ -23,6 +23,7 @@ export class TypeaheadComponent implements ControlValueAccessor {
   readonly valid = input(false);
   readonly invalid = input(false);
   readonly blurred = output<void>();
+  readonly picked = output<LookupItem | null>();
 
   protected text = signal('');
   protected items = signal<LookupItem[]>([]);
@@ -32,6 +33,8 @@ export class TypeaheadComponent implements ControlValueAccessor {
   protected active = signal(-1);
   protected disabled = signal(false);
   private selected = signal<LookupItem | null>(null);
+  
+  private display(item: LookupItem) { return item.label ?? item.name; }
 
   private term$ = new Subject<string>();
   private onChange: (value: string) => void = () => {};
@@ -82,6 +85,7 @@ export class TypeaheadComponent implements ControlValueAccessor {
     if (this.selected()) {
       this.selected.set(null);
       this.onChange('');
+      this.picked.emit(null);          // new: the choice was cancelled
     }
 
     const term = text.trim();
@@ -99,9 +103,11 @@ export class TypeaheadComponent implements ControlValueAccessor {
 
     // Typed the exact name but didn't click it: accept it
     if (!this.selected()) {
-      const typed = this.text().trim().toLowerCase();
-      const exact = this.items().find(item => item.name.toLowerCase() === typed);
-      if (exact) this.select(exact);
+        const typed = this.text().trim().toLowerCase();
+        // Only accept when exactly one suggestion matches: names can repeat across provinces
+        const exact = this.items().filter(item =>
+        [item.name, item.label].some(value => value?.toLowerCase() === typed));
+        if (exact.length === 1) this.select(exact[0]);
     }
 
     this.onTouched();
@@ -113,6 +119,7 @@ export class TypeaheadComponent implements ControlValueAccessor {
     this.text.set(item.name);
     this.open.set(false);
     this.onChange(String(item.id));
+    this.picked.emit(item);
   }
 
   protected onKeydown(event: KeyboardEvent) {
@@ -137,5 +144,13 @@ export class TypeaheadComponent implements ControlValueAccessor {
         this.open.set(false);
         break;
     }
+  }
+
+  setSelection(item: LookupItem | null) {
+    this.selected.set(item);
+    this.text.set(item ? this.display(item) : '');
+    this.items.set([]);
+    this.open.set(false);
+    this.onChange(item ? String(item.id) : '');
   }
 }

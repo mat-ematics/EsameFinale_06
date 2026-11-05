@@ -4,6 +4,7 @@ namespace App\Http\Controllers\api\v1\Location;
 
 use App\Helpers\AppHelpers;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Location\ItalianMunicipality\ItalianMunicipalityReadRequest;
 use App\Models\Location\ItalianMunicipality;
 use App\Services\Location\ItalianMunicipalityService;
 use Illuminate\Http\Request;
@@ -23,9 +24,13 @@ class ItalianMunicipalityController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(ItalianMunicipalityReadRequest $request)
     {
-        return $this->lookupSearch(ItalianMunicipality::class, $request);
+        $data = $request->validated();
+
+        $rows = $this->municipalityService->searchMunicipality($data);
+
+        return AppHelpers::jsonResponse('Municipalities Successfully Retrieved', 200, $rows);
     }
 
 

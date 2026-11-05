@@ -11,7 +11,7 @@
 
 /* --- IMPORTS --- */
 
-import { COUNTRY_ITALY_ID, RegistrationFormData } from "../types/registration_form_data.js";
+import { COUNTRY_ITALY_ID, ITALY_ISO, RegistrationFormData } from "../types/registration_form_data.js";
 import { FieldName } from "../types/registration_form_data.js";
 import { ErrorCodes } from "./error_codes.js";
 import { validateBirthDate, validateCAP, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateText, validateUsername } from "./field_validators.js";
@@ -39,9 +39,12 @@ const fieldValidatorsMap = {
     gender: (data: RegistrationFormData) => validateSelect(data.gender),
     country_id: (data: RegistrationFormData) => validateSelect(data.country_id),
     italian_municipality_id: () => createValidFieldResult(),
+    country_iso: () => createValidFieldResult(),
+    region_id: () => createValidFieldResult(),
+    province_id: () => createValidFieldResult(),
     street_address: (data: RegistrationFormData) => validateText(data.street_address),
     house_number: (data: RegistrationFormData) => validateText(data.house_number),
-    cap: (data: RegistrationFormData) => validateCAP(data.cap),
+    cap: (data: RegistrationFormData) => validateCAP(data.cap, data.country_iso),
     locality: (data: RegistrationFormData) =>
         validateText(data.locality ?? '', { required: false }),
     additional_info: (data: RegistrationFormData) =>
@@ -77,7 +80,7 @@ export function validateRegistrationField (
     // It's only required if the user selected Italy as their country
     if (
         field === 'italian_municipality_id' &&
-        data.country_id === COUNTRY_ITALY_ID &&
+        data.country_iso === ITALY_ISO &&
         !validateRequired(data.italian_municipality_id).isValid
     ) {
         //Error if not satisfied

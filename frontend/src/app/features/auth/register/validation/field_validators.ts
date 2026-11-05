@@ -12,6 +12,7 @@
 import { FieldValidationResult, validFieldResult } from "./validation_types.js";
 import { CAPPattern, emailPattern, getAge, isEmpty, namePattern, passwordPattern, safeTrim, usernamePattern } from "../utils/helpers.js";
 import { ErrorCodes, ValidationErrorCode } from "./error_codes.js";
+import { postalCodePattern } from "./postal_codes.js";
 
 
 /* --- CONSTANTS --- */
@@ -227,10 +228,14 @@ export function validateSelect(value: string): FieldValidationResult {
  * The CAP must match the CAPPattern regex format.
  * 
  * @param cap - The postal code to validate (string or number)
+ * @param countryIso The ISO code of the country of the cap
  * @returns Validation result
  */
-export const validateCAP = (cap: string | number): FieldValidationResult => {
-    return validateText(String(cap), { pattern: CAPPattern, formatErrorCode: ErrorCodes.INVALID_CAP });
+export const validateCAP = (cap: string, countryIso: string): FieldValidationResult => {
+    return validateText(String(cap).trim().toUpperCase(), {
+        pattern: postalCodePattern(countryIso),
+        formatErrorCode: ErrorCodes.INVALID_CAP,
+    });
 }
 
 /**

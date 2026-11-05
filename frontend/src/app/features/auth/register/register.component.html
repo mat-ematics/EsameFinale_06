@@ -101,23 +101,54 @@
         [search]="searchCountries"
         [valid]="isValid('country_id')"
         [invalid]="isInvalid('country_id')"
+        (picked)="onCountryPicked($event)"
         (blurred)="onBlur('country_id')" />
     <div class="invalid-feedback" [class.is-shown]="isInvalid('country_id')">{{ error('country_id') }}</div>
     </div>
 
-    <!-- Italian Municipality -->
+    <!-- Italian address helpers: region and province only narrow the search -->
+    @if (isItaly()) {
+    <div class="row mb-md-3">
+        <div class="col-12 col-md-6 mb-3 mb-md-0">
+            <label class="form-label" for="selectRegion">Region</label>
+            <select formControlName="region_id" id="selectRegion" class="form-select"
+                    (change)="onRegionChange($any($event.target).value)">
+                <option value="">Select a region</option>
+                @for (region of regions(); track region.id) {
+                <option [value]="region.id">{{ region.name }}</option>
+                }
+            </select>
+            <div class="invalid-feedback" [class.is-shown]="isInvalid('region_id')">{{ error('region_id') }}</div>
+        </div>
+        <div class="col-12 col-md-6 mb-3 mb-md-0">
+            <label class="form-label" for="selectProvince">Province</label>
+            <select formControlName="province_id" id="selectProvince" class="form-select"
+                    (change)="onProvinceChange($any($event.target).value)">
+                <option value="">{{ form.controls.region_id.value ? 'Select a province' : 'Select a region first' }}</option>
+                @for (province of provinces(); track province.id) {
+                <option [value]="province.id">{{ province.name }} ({{ province.code }})</option>
+                }
+            </select>
+            <div class="invalid-feedback" [class.is-shown]="isInvalid('province_id')">{{ error('province_id') }}</div>
+        </div>
+    </div>
+
     <div class="mb-3">
-    <label class="form-label" for="inputItalianMunicipality">Italian Municipality</label>
-    <app-typeahead
+        <label class="form-label" for="inputItalianMunicipality">Municipality <span class="required-text">*</span></label>
+        <app-typeahead
+        #municipalityField
         formControlName="italian_municipality_id"
         inputId="inputItalianMunicipality"
         placeholder="Start typing your municipality…"
         [search]="searchMunicipalities"
         [valid]="isValid('italian_municipality_id')"
         [invalid]="isInvalid('italian_municipality_id')"
+        (picked)="onMunicipalityPicked($event)"
         (blurred)="onBlur('italian_municipality_id')" />
-    <div class="invalid-feedback" [class.is-shown]="isInvalid('italian_municipality_id')">{{ error('italian_municipality_id') }}</div>
+        <div class="form-text">Picking a municipality fills in province, region and CAP.</div>
+        <div class="invalid-feedback" [class.is-shown]="isInvalid('italian_municipality_id')">{{ error('italian_municipality_id') }}</div>
     </div>
+    }
 
     <!-- Street address -->
     <div class="mb-3">
@@ -135,12 +166,28 @@
                [ngClass]="cls('house_number')" (blur)="onBlur('house_number')">
         <div class="invalid-feedback" [class.is-shown]="isInvalid('house_number')">{{ error('house_number') }}</div>
       </div>
-      <div class="col-12 col-md-6 mb-3 mb-md-0">
-        <label class="form-label" for="inputCap">CAP <span class="required-text">*</span></label>
-        <input type="text" formControlName="cap" id="inputCap" class="form-control" placeholder="00000"
-               [ngClass]="cls('cap')" (blur)="onBlur('cap')">
+      <!-- Postal code (second column of the house-number row) -->
+        <div class="col-12 col-md-6 mb-3 mb-md-0">
+        <label class="form-label" for="inputCap">Postal Code <span class="required-text">*</span></label>
+        <input type="text" formControlName="cap" id="inputCap" class="form-control"
+                autocomplete="postal-code"
+                [placeholder]="capPlaceholder()"
+                [ngClass]="cls('cap')"
+                (input)="onCapInput($any($event.target).value)"
+                (blur)="onBlur('cap')">
         <div class="invalid-feedback" [class.is-shown]="isInvalid('cap')">{{ error('cap') }}</div>
-      </div>
+
+        @if (capMatches().length) {
+            <div class="form-text">
+            Several municipalities use this CAP:
+            @for (m of capMatches(); track m.id) {
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-1 mb-1" (click)="pickMunicipality(m)">
+                {{ m.label ?? m.name }}
+                </button>
+            }
+            </div>
+        }
+        </div>
     </div>
 
     <!-- Locality -->

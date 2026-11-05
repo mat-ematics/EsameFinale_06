@@ -23,8 +23,16 @@ class ItalianProvinceController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->boolean('compact')) {
+            return AppHelpers::jsonResponse(
+                'Provinces Successfully Retrieved',
+                200,
+                ItalianProvince::orderBy('name')->get(['id', 'region_id', 'name', 'code'])->toArray()
+            );
+        }
+
         $provinces = $this->provinceService->getItalianProvinceCollectionInfo(ItalianProvince::all(), Gate::check('isAdmin'));
         return AppHelpers::jsonResponse(
             empty($provinces) ? 'Provinces Successfully Retrieved!' : "There are no Provinces present at the moment",

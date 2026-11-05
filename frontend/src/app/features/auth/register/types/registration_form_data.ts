@@ -19,6 +19,8 @@
  */
 export const COUNTRY_ITALY_ID = '1';
 
+export const ITALY_ISO = "IT";
+
 
 /* --- TYPES & INTERFACES --- */
 
@@ -61,6 +63,9 @@ export interface RegistrationFormData {
     birthdate: string,
     gender: gender,
     country_id: string,
+    country_iso: string,          // UI only: lets validators know the country
+    region_id?: string,           // UI only
+    province_id?: string,         // UI only
     italian_municipality_id?: string,
     street_address: string,
     house_number: string,
@@ -112,7 +117,10 @@ export function extractRegistrationFormData(form: HTMLFormElement): Registration
         birthdate: data.get("birthdate") as string,
         gender: data.get("gender") as gender,
         country_id: data.get("country_id") as string,
+        country_iso: data.get("country_iso") as string,
         // Optional field with fallback to empty string
+        region_id: (data.get('region_id') as string) ?? "",
+        province_id: (data.get('province_id') as string) ?? "",
         italian_municipality_id: (data.get("italian_municipality_id") as string) ?? '',
         street_address: data.get("street_address") as string,
         house_number: data.get("house_number") as string,

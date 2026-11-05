@@ -38,7 +38,7 @@ class ItalianRegionResource extends JsonResource
         $data = $this->resource->getAttributes();
 
         if (!$this->isAdmin) {
-            $data = Arr::only($data, ['name', 'code']);
+            $data = Arr::only($data, ['id', 'name', 'code']);
         }
 
         return $data;
