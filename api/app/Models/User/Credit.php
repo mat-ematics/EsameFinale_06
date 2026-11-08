@@ -13,6 +13,8 @@ class Credit extends Model
         'count',
     ];
 
+    public const MAX_COUNT = 999999.99;
+
     /* --------- RELAZIONI --------*/
 
     public function user()

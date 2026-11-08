@@ -7,7 +7,7 @@ use Closure;
 use Illuminate\Contracts\Validation\DataAwareRule;
 use Illuminate\Contracts\Validation\ValidationRule;
 
-class TaxCode implements DataAwareRule, ValidationRule
+class TaxCodeRule implements DataAwareRule, ValidationRule
 {
     protected array $data = [];
 

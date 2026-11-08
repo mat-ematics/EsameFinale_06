@@ -13,11 +13,8 @@ use App\Models\User\Password;
 use App\Models\User\User;
 use App\Services\User\UserService;
 use Carbon\Carbon;
-use Exception;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AuthService {
 
@@ -45,15 +42,18 @@ class AuthService {
     public function loginUser(string $username, string $password, string $ip) : array
     {
         $access = Access::getAccess($ip, $username);
+        $newAccess = false;
+        
         if (!$access) {
             $access = Access::createAccess($ip, $username);
+            $newAccess = true;
         }
         
         $user = User::getUserByUsername($username);
         $stored = $user?->currentPassword?->password ?? str_repeat('0', 64); //fantoccio della stessa lunghezza
         $valid  = Password::hashEquals($stored, $password) && $user !== null;
 
-        if (!$valid) {
+        if (!$valid && !$newAccess) {
             $access->addError();
             throw new InvalidCredentialsException();
         }

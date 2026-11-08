@@ -4,9 +4,8 @@ namespace App\Http\Requests\User\UserProfile;
 
 use App\Helpers\AppHelpers;
 use App\Http\Requests\Authentication\RegisterRequest;
-use Illuminate\Foundation\Http\FormRequest;
 
-class ProfileUpdateRequest extends RegisterRequest
+class UserProfileUpdateRequest extends RegisterRequest
 {
     /**
      * Determine if the user is authorized to make this request.

@@ -116,6 +116,7 @@ export const FieldErrorMessagesMap: FieldErrorMessages = {
     credit: {
         REQUIRED: "Credit is required",
         INVALID_CREDIT: "Credit must be a positive amount",
+        CREDIT_TOO_HIGH: "Credit cannot exceed 999,999.99",
     },
     currency: {
         REQUIRED: "Currency is required",

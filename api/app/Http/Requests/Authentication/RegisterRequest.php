@@ -3,9 +3,10 @@
 namespace App\Http\Requests\Authentication;
 
 use App\Models\Location\Country;
+use App\Models\User\Credit;
 use App\Models\User\User;
 use App\Rules\PostalCodeRule;
-use App\Rules\TaxCode;
+use App\Rules\TaxCodeRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as RulesPassword;
@@ -81,12 +82,12 @@ class RegisterRequest extends FormRequest
             'tax_code' => [
                 Rule::requiredIf(fn () => $this->countryIso() === 'IT'),
                 'nullable', 'string', 'max:20',
-                new TaxCode($this->countryIso()),
+                new TaxCodeRule($this->countryIso()),
                 Rule::unique('user_profiles', 'tax_code'),
             ],
 
             //Informazioni Credito
-            'credit' => 'required|numeric|min:0',
+            'credit' => 'required|numeric|min:0|max:' . Credit::MAX_COUNT,
         ];
     }
 }

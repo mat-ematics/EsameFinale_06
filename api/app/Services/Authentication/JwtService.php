@@ -2,6 +2,7 @@
 
 namespace App\Services\Authentication;
 
+use App\Helpers\AppHelpers;
 use App\Models\Authentication\JwtSecret;
 use App\Models\Authentication\Session;
 use App\Models\Global\Config;
@@ -109,7 +110,8 @@ class JwtService {
             if ($payload->iss !== config('app.url')) {
                 throw new Exception ('Wrong issuer');
             }
-            if ($payload->expires_at->isPast()) {
+
+            if (!AppHelpers::isFuture($payload->exp)) {
                 throw new Exception ('Session expired');
             }
 

@@ -8,6 +8,7 @@ use App\Services\Authentication\JwtService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class TokenAuth
@@ -37,7 +38,7 @@ class TokenAuth
             if ($mode === 'optional') {
                 return $next($request); //guest, no user set
             }
-            abort('Missing Token!', 401);
+            abort(401, 'Missing Token!');
         }
 
         abort_unless($this->jwtService->validateToken($token), 401, 'Invalid Token!');

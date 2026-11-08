@@ -6,7 +6,6 @@ use App\Helpers\AppHelpers;
 use App\Models\User\Password;
 use App\Models\User\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class PasswordService {

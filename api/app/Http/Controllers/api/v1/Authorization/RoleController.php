@@ -9,7 +9,6 @@ use App\Models\Authorization\Role;
 use App\Services\Global\RoleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class RoleController extends Controller
 {

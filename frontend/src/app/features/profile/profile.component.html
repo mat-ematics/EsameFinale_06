@@ -1,0 +1,156 @@
+<main class="container py-5 min-vh-100">
+
+  @switch (status()) {
+    @case ('loading') {
+      <p class="text-muted">Loading your profile…</p>
+    }
+
+    @case ('error') {
+      <div class="alert alert-danger" role="alert">{{ loadError() }}</div>
+      <button type="button" class="btn btn-outline-light" (click)="load()">Try again</button>
+    }
+
+    @case ('ok') {
+      <!-- Header -->
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+        <h2 class="mb-0">
+          {{ profile().name }} <span class="color-brand">{{ profile().surname }}</span>
+        </h2>
+        @if (role) { <span class="badge text-bg-secondary text-uppercase">{{ role }}</span> }
+      </div>
+      <p class="text-muted">{{ profile().email }}</p>
+
+      @if (notice()) {
+        <div class="alert alert-success" role="alert">{{ notice() }}</div>
+      }
+      @if (formError() && !editing()) {
+        <div class="alert alert-danger" role="alert">{{ formError() }}</div>
+      }
+
+      <div class="row g-3">
+
+        <!-- Personal data -->
+        <div class="col-12 col-lg-7">
+          <div class="card bg-dark h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="card-title mb-0">Personal data</h5>
+                @if (!editing()) {
+                  <button type="button" class="btn btn-sm btn-outline-light" (click)="startEdit()">Edit</button>
+                }
+              </div>
+
+              @if (!editing()) {
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">Name</dt>      <dd class="col-sm-8">{{ profile().name ?? '-' }}</dd>
+                  <dt class="col-sm-4">Surname</dt>   <dd class="col-sm-8">{{ profile().surname ?? '-' }}</dd>
+                  <dt class="col-sm-4">E-mail</dt>    <dd class="col-sm-8 text-break">{{ profile().email ?? '-' }}</dd>
+                  <dt class="col-sm-4">Birthdate</dt> <dd class="col-sm-8">{{ profile().birthdate ? (profile().birthdate | date: 'mediumDate') : '-' }}</dd>
+                  <dt class="col-sm-4">Gender</dt>    <dd class="col-sm-8 mb-0">{{ genderLabel(profile().gender) }}</dd>
+                </dl>
+              } @else {
+                <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+                  <div class="row mb-md-3">
+                    <div class="col-12 col-md-6 mb-3 mb-md-0">
+                      <label class="form-label" for="profName">Name</label>
+                      <input type="text" formControlName="name" id="profName" class="form-control"
+                             [ngClass]="cls('name')" (blur)="onBlur('name')">
+                      <div class="invalid-feedback" [class.is-shown]="isInvalid('name')">{{ error('name') }}</div>
+                    </div>
+                    <div class="col-12 col-md-6 mb-3 mb-md-0">
+                      <label class="form-label" for="profSurname">Surname</label>
+                      <input type="text" formControlName="surname" id="profSurname" class="form-control"
+                             [ngClass]="cls('surname')" (blur)="onBlur('surname')">
+                      <div class="invalid-feedback" [class.is-shown]="isInvalid('surname')">{{ error('surname') }}</div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label" for="profEmail">E-mail</label>
+                    <input type="email" formControlName="email" id="profEmail" class="form-control"
+                           [ngClass]="cls('email')" (blur)="onBlur('email')">
+                    <div class="invalid-feedback" [class.is-shown]="isInvalid('email')">{{ error('email') }}</div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label" for="profBirthdate">Birthdate</label>
+                    <input type="date" formControlName="birthdate" id="profBirthdate" class="form-control"
+                           [ngClass]="cls('birthdate')" (blur)="onBlur('birthdate')">
+                    <div class="invalid-feedback" [class.is-shown]="isInvalid('birthdate')">{{ error('birthdate') }}</div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label" for="profGender">Gender</label>
+                    <select formControlName="gender" id="profGender" class="form-select"
+                            [ngClass]="cls('gender')" (blur)="onBlur('gender')">
+                      <option disabled hidden value="">Select your gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other/Prefer not to Say</option>
+                    </select>
+                    <div class="invalid-feedback" [class.is-shown]="isInvalid('gender')">{{ error('gender') }}</div>
+                  </div>
+
+                  @if (formError()) {
+                    <div class="alert alert-danger" role="alert">{{ formError() }}</div>
+                  }
+
+                  <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger" [disabled]="saving()">
+                      {{ saving() ? 'Saving…' : 'Save changes' }}
+                    </button>
+                    <button type="button" class="btn btn-outline-light" [disabled]="saving()" (click)="cancelEdit()">Cancel</button>
+                  </div>
+                </form>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Credit -->
+        <div class="col-12 col-lg-5">
+          <div class="card bg-dark h-100">
+            <div class="card-body">
+              <h5 class="card-title">Credit</h5>
+              <p class="display-6 mb-3">
+                {{ credit() !== null ? (credit() | currency: 'EUR') : '-' }}
+              </p>
+
+              <label class="form-label" for="creditAmount">Amount</label>
+              <input type="text" id="creditAmount" class="form-control" inputmode="decimal" placeholder="0.00"
+                     [formControl]="amount" [class.is-invalid]="!!amountError()">
+              <div class="invalid-feedback" [class.is-shown]="!!amountError()">{{ amountError() }}</div>
+
+              <div class="d-flex gap-2 mt-2">
+                <button type="button" class="btn btn-danger" [disabled]="creditBusy()" (click)="changeCredit('add')">Add</button>
+                <button type="button" class="btn btn-outline-light" [disabled]="creditBusy()" (click)="changeCredit('remove')">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delete account -->
+        <div class="col-12">
+          <div class="card bg-dark border-danger">
+            <div class="card-body">
+              <h5 class="card-title text-danger">Delete account</h5>
+
+              @if (!confirmingDelete()) {
+                <p class="text-muted">Your account will be deactivated and you will be signed out.</p>
+                <button type="button" class="btn btn-outline-danger" (click)="confirmingDelete.set(true)">Delete my account</button>
+              } @else {
+                <p class="mb-2">Are you sure? You will be signed out immediately.</p>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-danger" [disabled]="deleting()" (click)="deleteAccount()">
+                    {{ deleting() ? 'Deleting…' : 'Yes, delete it' }}
+                  </button>
+                  <button type="button" class="btn btn-outline-light" [disabled]="deleting()" (click)="confirmingDelete.set(false)">Cancel</button>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</main>

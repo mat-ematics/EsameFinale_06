@@ -5,10 +5,12 @@ namespace App\Http\Controllers\api\v1\User;
 use App\Helpers\AppHelpers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Credit\CreditStoreRequest;
-use App\Http\Requests\User\UserProfile\ProfileUpdateRequest;
+use App\Http\Requests\User\UserProfile\UserProfileUpdateRequest;
+use App\Models\User\Credit;
 use App\Services\User\UserProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class UserProfileController extends Controller
 {
@@ -32,7 +34,7 @@ class UserProfileController extends Controller
         return AppHelpers::jsonResponse('Profile Successfully Retrieved', 200, $userProfile);
     }
 
-    public function updateCurrentUser(ProfileUpdateRequest $request)
+    public function updateCurrentUser(UserProfileUpdateRequest $request)
     {
         $user = Auth::user();
         $data = $request->validated();
@@ -48,13 +50,22 @@ class UserProfileController extends Controller
 
     public function showCredit()
     {
-        $credit = (float) $this->profileService->getCreditValue(Auth::user());
+        $credit = (float) $this->profileService->getCredit(Auth::user());
         return AppHelpers::jsonResponse('Credit Successfully Retrieved', 200, ['credit' => $credit]);
     }
 
     public function addCredit(CreditStoreRequest $request)
     {
-        $credit = (float) $this->profileService->addCredit(Auth::user(), $request->validated()['credit']);
+        $user = Auth::user();
+        $amount = $request->validated()['credit'];
+
+        abort_if(
+            $this->profileService->getCredit($user) + $amount > Credit::MAX_COUNT,
+            422,
+            "You cannot have more credit the the maximum allowed (" . Credit::MAX_COUNT . ")"
+        );
+
+        $credit = (float) $this->profileService->addCredit(Auth::user(), $amount);
         return AppHelpers::jsonResponse('Credit Added', 200, ['credit' => $credit]);
     }
 
@@ -64,7 +75,7 @@ class UserProfileController extends Controller
         $amount = $request->validated()['credit'];
 
         abort_if(
-            $this->profileService->getCreditValue($user) < $amount,
+            $this->profileService->getCredit($user) < $amount,
             422,
             'You cannot remove more credit than what you have!'
         );

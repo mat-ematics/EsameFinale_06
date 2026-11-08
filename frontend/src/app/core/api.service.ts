@@ -22,6 +22,27 @@ export function apiErrorMessage(err: unknown): string {
     return err instanceof Error ? err.message : 'UNKNOWN_ERROR';
 }
 
+export interface ApiErrorDetails {
+  message: string;                    // the summary: "Validation failed", "Server error"...
+  fields: Record<string, string>;     // first message per field (422 only)
+}
+
+export function apiErrorDetails(err: unknown): ApiErrorDetails {
+  const fields: Record<string, string> = {};
+
+  if (err instanceof HttpErrorResponse && err.status === 422) {
+    const data = (err.error as { data?: unknown } | null)?.data;
+    if (data && typeof data === 'object') {
+      for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+        const first = Array.isArray(value) ? value[0] : value;
+        if (typeof first === 'string') fields[key] = first;
+      }
+    }
+  }
+
+  return { message: apiErrorMessage(err), fields };
+}
+
 @Injectable({
     providedIn: 'root',
 })

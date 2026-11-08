@@ -34,6 +34,9 @@ export const VALIDATION_RULES = {
         minLength: 3,
         maxLength: 32,
     },
+    credit: {
+        maxValue: 999999.99,
+    }
 } as const;
 
 
@@ -299,6 +302,10 @@ export function validateCredit(credit: string | number): FieldValidationResult {
     // Check if the value is a valid positive number
     if (Number.isNaN(credit) || credit <= 0) {
         return { isValid: false, errorCode: ErrorCodes.INVALID_CREDIT }
+    }
+
+    if (credit > VALIDATION_RULES.credit.maxValue) {
+        return { isValid: false, errorCode: ErrorCodes.CREDIT_TOO_HIGH }
     }
 
     return validFieldResult;

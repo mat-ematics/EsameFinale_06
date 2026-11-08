@@ -125,7 +125,7 @@ class AppHelpers {
         return $expirationTime->isFuture();
     }
 
-    public function isFuture(Carbon|int|string $time)
+    public static function isFuture(Carbon|int|string $time)
     {
         if (!$time instanceof Carbon) {
             $time = Carbon::parse($time);

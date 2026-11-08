@@ -18,5 +18,10 @@ export const routes: Routes = [
         canActivate: [authGuard],
         loadComponent: () => import('./features/browse/browse.component').then(m => m.BrowseComponent),
     },
+    {
+        path: 'profile',
+        canActivate: [authGuard],
+        loadComponent: () => import('./features/profile/profile.component').then(m => m.ProfileComponent),
+    },
     { path: '**', redirectTo: 'register' },
 ];

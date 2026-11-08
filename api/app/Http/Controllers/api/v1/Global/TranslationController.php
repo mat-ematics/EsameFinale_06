@@ -7,10 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Global\Translation\TranslationStoreRequest;
 use App\Http\Requests\Global\Translation\TranslationUpdateRequest;
 use App\Services\Global\TranslationService;
-use Closure;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TranslationController extends Controller
 {
