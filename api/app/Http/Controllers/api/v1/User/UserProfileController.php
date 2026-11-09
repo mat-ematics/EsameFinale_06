@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Credit\CreditStoreRequest;
 use App\Http\Requests\User\UserProfile\UserProfileUpdateRequest;
 use App\Models\User\Credit;
+use App\Services\Authentication\AuthService;
 use App\Services\User\UserProfileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,13 +16,15 @@ use Illuminate\Support\Facades\Log;
 class UserProfileController extends Controller
 {
     protected UserProfileService $profileService;
+    protected AuthService $authService;
     
     /**
      * Inizializzatore dei Servizi
      */
-    public function __construct(UserProfileService $profileService)
+    public function __construct(UserProfileService $profileService, AuthService $authService)
     {
         $this->profileService = $profileService;
+        $this->authService = $authService;
     }
 
     /**
@@ -39,6 +42,10 @@ class UserProfileController extends Controller
         $user = Auth::user();
         $data = $request->validated();
         $userProfile = $this->profileService->updateProfile($user, $data);
+        // A new password invalidates every session, including this one
+        if (!empty($data['password'])) {
+            $this->authService->endUserSession($user->id);
+        }
         return AppHelpers::jsonResponse('Profile Successfully Updated', 200, $userProfile);
     }
 

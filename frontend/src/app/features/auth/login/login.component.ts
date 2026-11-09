@@ -29,6 +29,8 @@ export class LoginComponent {
   readonly formError = signal<string | null>(null);
   readonly submitting = signal(false);
 
+  protected notice: string | null = history.state?.notice ?? null;
+
   /* --------- Template helpers (same shape as RegisterComponent) --------- */
 
   isInvalid(field: LoginField) { return this.results()[field]?.isValid === false; }

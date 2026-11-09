@@ -73,12 +73,12 @@ export class AuthService extends ApiService {
     }
 
     /** Pulisce l'autenticazione eliminando token e riportando alla pagina di login */
-    clear() {
+    clear(notice?: string) {
         //rimuove il token
         localStorage.removeItem(KEY);
         this._token.set(null);
         //riporta alla pagina di login
-        this.router.navigate(['/login']);
+        this.router.navigate(['/login'], notice ? { state: { notice } }: {});
     }
 
     /**

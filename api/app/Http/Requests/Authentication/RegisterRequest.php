@@ -53,7 +53,7 @@ class RegisterRequest extends FormRequest
             //Informazioni Utente
             'name' => 'required|string|max:255',
             'surname' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:user_profiles,email',
+            'email' => ['required', 'email', 'max:255', Rule::unique('user_profiles', 'email')],
             'birthdate' => 'required|date|before_or_equal:-18 years',
             'gender' => 'required|in:male,female,other',
             'username' => [
@@ -87,7 +87,7 @@ class RegisterRequest extends FormRequest
             ],
 
             //Informazioni Credito
-            'credit' => 'required|numeric|min:0|max:' . Credit::MAX_COUNT,
+            'credit' => 'required', 'numeric', 'decimal:0.2', 'min:0.01', 'max:' . Credit::MAX_COUNT,
         ];
     }
 }

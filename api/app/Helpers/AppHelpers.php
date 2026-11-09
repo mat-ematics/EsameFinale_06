@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rules\RequiredIf;
 use Illuminate\Validation\Rules\Unique;
 use Throwable;
 
@@ -35,7 +36,10 @@ class AppHelpers {
             }
 
             if (is_array($ruleset)) {
-                $ruleset = array_values(array_filter($ruleset, fn ($r) => $r !== 'required'));
+                $ruleset = array_values(array_filter(
+                    $ruleset, 
+                    fn ($r) => $r !== 'required' && !($r instanceof RequiredIf)
+                ));
 
                 if ($ignoreId !== null) {
                     foreach ($ruleset as $rule) {

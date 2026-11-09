@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, WritableSignal } from '@angular/core';
 import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
@@ -7,9 +7,11 @@ import { AuthService } from '../../core/auth.service';
 import { apiErrorDetails, apiErrorMessage } from '../../core/api.service';
 import { Profile, ProfileService } from '../../core/profile.service';
 import { UtilitiesService } from '../../core/utilities.service';
-import { validateBirthDate, validateCredit, validateEmail, validateName, validateSelect } from '../auth/register/validation/field_validators';
+import { validateBirthDate, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateUsername } from '../auth/register/validation/field_validators';
 import { FieldValidationResult } from '../auth/register/validation/validation_types';
 import { getFieldErrorMessage } from '../auth/register/ui/form_errors';
+import { PasswordFieldComponent } from '../../shared/password-field/password-field.component.js';
+import { FieldName } from '../auth/register/types/registration_form_data.js';
 
 type EditField = 'name' | 'surname' | 'email' | 'birthdate' | 'gender';
 const FIELDS: EditField[] = ['name', 'surname', 'email', 'birthdate', 'gender'];
@@ -24,9 +26,18 @@ const VALIDATORS: Record<EditField, (value: string) => FieldValidationResult> = 
 
 const GENDER_LABELS: Record<string, string> = { male: 'Male', female: 'Female', other: 'Other / prefer not to say' };
 
+type SecKey = 'u_username' | 'u_current' | 'p_current' | 'p_new' | 'p_confirm';
+
+/** Which register-form field's messages each security input reuses */
+const SEC_FIELD: Partial<Record<SecKey, FieldName>> = {
+  u_username: 'username',
+  p_new: 'password',
+  p_confirm: 'confirm_password',
+};
+
 @Component({
   selector: 'app-profile',
-  imports: [ReactiveFormsModule, NgClass, DatePipe, CurrencyPipe],
+  imports: [ReactiveFormsModule, NgClass, DatePipe, CurrencyPipe, PasswordFieldComponent],
   templateUrl: './profile.component.html',
 })
 export class ProfileComponent {
@@ -53,6 +64,16 @@ export class ProfileComponent {
   protected formError = signal<string | null>(null);
 
   protected form = this.fb.group({ name: [''], surname: [''], email: [''], birthdate: [''], gender: [''] });
+
+    /* --------- Security (username and password) --------- */
+  protected usernameForm = this.fb.group({ username: [''], current_password: [''] });
+  protected passwordForm = this.fb.group({ current_password: [''], password: [''], confirm_password: [''] });
+
+  protected secResults = signal<Partial<Record<SecKey, FieldValidationResult>>>({});
+  protected secServer = signal<Partial<Record<SecKey, string>>>({});
+  protected userFormError = signal<string | null>(null);
+  protected passFormError = signal<string | null>(null);
+  protected secBusy = signal<'username' | 'password' | null>(null);
 
   /* --------- Credit --------- */
   protected amount = this.fb.control('');
@@ -178,6 +199,124 @@ export class ProfileComponent {
     const { message, fields } = apiErrorDetails(err);
     this.serverErrors.set(fields);                 // shown under each field
     this.formError.set(message);
+  }
+
+   /* --------- Security helpers --------- */
+
+  sInvalid(key: SecKey) { return !!this.secServer()[key] || this.secResults()[key]?.isValid === false; }
+  sValid(key: SecKey)   { return !this.sInvalid(key) && this.secResults()[key]?.isValid === true; }
+  sCls(key: SecKey)     { return { 'is-valid': this.sValid(key), 'is-invalid': this.sInvalid(key) }; }
+
+  sError(key: SecKey): string {
+    const server = this.secServer()[key];
+    if (server) return server;
+
+    const result = this.secResults()[key];
+    if (!result || result.isValid) return '';
+
+    if (key === 'u_current' || key === 'p_current') return 'Enter your current password';
+    return getFieldErrorMessage(SEC_FIELD[key]!, result.errorCode);
+  }
+
+  private checkSec(key: SecKey): FieldValidationResult {
+    const u = this.usernameForm.getRawValue();
+    const p = this.passwordForm.getRawValue();
+
+    switch (key) {
+      case 'u_username': return validateUsername(u.username.trim());
+      case 'u_current':  return validateRequired(u.current_password);
+      case 'p_current':  return validateRequired(p.current_password);
+      case 'p_new':      return validatePassword(p.password);
+      case 'p_confirm':  return validateConfirmPassword(p.password, p.confirm_password);
+    }
+  }
+
+  sBlur(key: SecKey) {
+    this.secResults.update(r => ({ ...r, [key]: this.checkSec(key) }));
+    this.clearSecServer([key]);
+
+    // The confirmation depends on the new password
+    if (key === 'p_new' && this.secResults().p_confirm) {
+      this.secResults.update(r => ({ ...r, p_confirm: this.checkSec('p_confirm') }));
+    }
+  }
+
+  private clearSecServer(keys: SecKey[]) {
+    this.secServer.update(s => {
+      const next = { ...s };
+      keys.forEach(k => delete next[k]);
+      return next;
+    });
+  }
+
+  private clearSecResults(keys: SecKey[]) {
+    this.secResults.update(r => {
+      const next = { ...r };
+      keys.forEach(k => delete next[k]);
+      return next;
+    });
+  }
+
+  /** Validates the given inputs and shows their results. Returns true when all are valid */
+  private validateSec(keys: SecKey[]): boolean {
+    const results = Object.fromEntries(keys.map(k => [k, this.checkSec(k)])) as Record<SecKey, FieldValidationResult>;
+    this.secResults.update(r => ({ ...r, ...results }));
+    this.clearSecServer(keys);
+    return keys.every(k => results[k].isValid);
+  }
+
+  /** Puts the server's field messages under the right inputs; falls back to a general message */
+  private applySecErrors(err: unknown, map: Record<string, SecKey>, general: WritableSignal<string | null>) {
+    const { message, fields } = apiErrorDetails(err);
+    const mapped = Object.fromEntries(
+      Object.entries(fields).filter(([name]) => name in map).map(([name, text]) => [map[name], text])
+    );
+
+    this.secServer.update(s => ({ ...s, ...mapped }));
+    general.set(Object.keys(mapped).length ? null : message);
+  }
+
+  /* --------- Change username --------- */
+
+  changeUsername() {
+    this.userFormError.set(null);
+    if (!this.validateSec(['u_username', 'u_current'])) return;
+
+    const { username, current_password } = this.usernameForm.getRawValue();
+
+    this.notice.set(null);
+    this.secBusy.set('username');
+    this.api.updateMe({ username: username.trim(), current_password })
+      .pipe(finalize(() => this.secBusy.set(null)))
+      .subscribe({
+        next: () => {
+          this.usernameForm.reset();
+          this.clearSecResults(['u_username', 'u_current']);
+          this.notice.set('Username updated. Use it the next time you sign in.');
+        },
+        error: err => this.applySecErrors(
+          err, { username: 'u_username', current_password: 'u_current' }, this.userFormError),
+      });
+  }
+
+  /* --------- Change password --------- */
+
+  changePassword() {
+    this.passFormError.set(null);
+    if (!this.validateSec(['p_current', 'p_new', 'p_confirm'])) return;
+
+    const { current_password, password } = this.passwordForm.getRawValue();
+
+    this.notice.set(null);
+    this.secBusy.set('password');
+    this.api.updateMe({ password, current_password })
+      .pipe(finalize(() => this.secBusy.set(null)))
+      .subscribe({
+        // The server ended every session: leave with an explanation
+        next: () => this.auth.clear('Password changed. Please sign in again.'),
+        error: err => this.applySecErrors(
+          err, { current_password: 'p_current', password: 'p_new' }, this.passFormError),
+      });
   }
 
   /* --------- Credit --------- */

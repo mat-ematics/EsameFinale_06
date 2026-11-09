@@ -169,7 +169,11 @@ class User extends Authenticatable
         return $username ? hash('sha256', $username) : null;
     }
 
-    public static function usernameIsTaken(string $username) : bool {
-        return static::withTrashed()->where('username', static::getUsernameHash($username))->exists();
+    public static function usernameIsTaken(string $username, ?int $ignoreUserId = null): bool
+    {
+        return static::withTrashed()
+            ->where('username', static::getUsernameHash($username))
+            ->when($ignoreUserId, fn ($query, $id) => $query->where('id', '!=', $id))
+            ->exists();
     }
 }

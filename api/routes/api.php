@@ -119,7 +119,7 @@ Route::prefix('v1')->group(function () {
         /* ---- Profilo e credito (utente corrente) ---- */
         Route::prefix('/me')->group(function () {
             Route::get('/', [UserProfileController::class, 'showCurrentUser']);
-            Route::put('/', [UserProfileController::class, 'updateCurrentUser']);
+            Route::put('/', [UserProfileController::class, 'updateCurrentUser'])->middleware('throttle:10,1');
             Route::delete('/', [UserProfileController::class, 'destroyCurrentUser']);
             Route::get('/credit', [UserProfileController::class, 'showCredit']);
             Route::put('/credit/add', [UserProfileController::class, 'addCredit']);

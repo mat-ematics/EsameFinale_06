@@ -27,6 +27,10 @@
       <div class="invalid-feedback" [class.is-shown]="isInvalid('password')">{{ error('password') }}</div>
     </div>
 
+    <!-- NOTICE ALERT -->
+    @if (notice) {
+      <div class="alert alert-success" role="alert">{{ notice }}</div>
+    }
 
     <!-- Server error: deliberately generic for wrong user or password -->
     @if (formError()) {

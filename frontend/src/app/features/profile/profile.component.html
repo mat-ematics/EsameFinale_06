@@ -129,6 +129,108 @@
           </div>
         </div>
 
+        <!-- Change username -->
+        <div class="col-12 col-lg-6">
+        <div class="card bg-dark h-100">
+            <div class="card-body">
+            <h5 class="card-title">Change username</h5>
+            <p class="text-muted small">
+                Your current username is stored encrypted, so it can't be displayed.
+                The new one applies from your next sign-in.
+            </p>
+
+            <form [formGroup]="usernameForm" (ngSubmit)="changeUsername()" novalidate>
+                <div class="mb-3">
+                <label class="form-label" for="newUsername">New username</label>
+                <input type="text" formControlName="username" id="newUsername" class="form-control"
+                        autocomplete="off" placeholder="e.g. jd1999"
+                        [ngClass]="sCls('u_username')" (blur)="sBlur('u_username')">
+                <div class="invalid-feedback" [class.is-shown]="sInvalid('u_username')">{{ sError('u_username') }}</div>
+                </div>
+
+                <div class="mb-3">
+                <label class="form-label" for="usernamePassword">Current password</label>
+                <app-password-field
+                    formControlName="current_password"
+                    inputId="usernamePassword"
+                    autocomplete="current-password"
+                    [valid]="sValid('u_current')"
+                    [invalid]="sInvalid('u_current')"
+                    (blurred)="sBlur('u_current')" />
+                <div class="invalid-feedback" [class.is-shown]="sInvalid('u_current')">{{ sError('u_current') }}</div>
+                </div>
+
+                @if (userFormError()) {
+                <div class="alert alert-danger" role="alert">{{ userFormError() }}</div>
+                }
+
+                <button type="submit" class="btn btn-danger" [disabled]="secBusy() !== null">
+                {{ secBusy() === 'username' ? 'Saving…' : 'Update username' }}
+                </button>
+            </form>
+            </div>
+        </div>
+        </div>
+
+        <!-- Change password -->
+        <div class="col-12 col-lg-6">
+        <div class="card bg-dark h-100">
+            <div class="card-body">
+            <h5 class="card-title">Change password</h5>
+            <p class="text-muted small">You will be signed out on every device and asked to sign in again.</p>
+
+            <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
+                <div class="mb-3">
+                <label class="form-label" for="passwordCurrent">Current password</label>
+                <app-password-field
+                    formControlName="current_password"
+                    inputId="passwordCurrent"
+                    autocomplete="current-password"
+                    [valid]="sValid('p_current')"
+                    [invalid]="sInvalid('p_current')"
+                    (blurred)="sBlur('p_current')" />
+                <div class="invalid-feedback" [class.is-shown]="sInvalid('p_current')">{{ sError('p_current') }}</div>
+                </div>
+
+                <div class="mb-3">
+                <label class="form-label" for="passwordNew">New password</label>
+                <app-password-field
+                    formControlName="password"
+                    inputId="passwordNew"
+                    autocomplete="new-password"
+                    [valid]="sValid('p_new')"
+                    [invalid]="sInvalid('p_new')"
+                    (blurred)="sBlur('p_new')" />
+                <div class="form-text">
+                    Min 8 characters, including uppercase, lowercase, number and special character (#?!&#64;$%^&amp;*-).
+                </div>
+                <div class="invalid-feedback" [class.is-shown]="sInvalid('p_new')">{{ sError('p_new') }}</div>
+                </div>
+
+                <div class="mb-3">
+                <label class="form-label" for="passwordConfirm">Confirm new password</label>
+                <app-password-field
+                    formControlName="confirm_password"
+                    inputId="passwordConfirm"
+                    autocomplete="new-password"
+                    [valid]="sValid('p_confirm')"
+                    [invalid]="sInvalid('p_confirm')"
+                    (blurred)="sBlur('p_confirm')" />
+                <div class="invalid-feedback" [class.is-shown]="sInvalid('p_confirm')">{{ sError('p_confirm') }}</div>
+                </div>
+
+                @if (passFormError()) {
+                <div class="alert alert-danger" role="alert">{{ passFormError() }}</div>
+                }
+
+                <button type="submit" class="btn btn-danger" [disabled]="secBusy() !== null">
+                {{ secBusy() === 'password' ? 'Saving…' : 'Change password' }}
+                </button>
+            </form>
+            </div>
+        </div>
+        </div>
+
         <!-- Delete account -->
         <div class="col-12">
           <div class="card bg-dark border-danger">
