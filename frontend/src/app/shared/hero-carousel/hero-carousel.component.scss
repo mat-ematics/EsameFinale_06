@@ -1,0 +1,93 @@
+@use 'variables' as var;
+
+:host { display: block; }
+
+.hero {
+    position: relative;
+    height: clamp(180px, 30dvh, 360px);          // was 30dvh
+    overflow: hidden;
+    border-radius: .375rem;
+    background: var.$footer-bg-dark-custom;
+}
+
+.slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .6s ease, visibility .6s;
+
+    &.active { opacity: 1; visibility: visible; }
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(0deg, rgba(0, 0, 0, .6), transparent 50%);
+        pointer-events: none;
+    }
+
+    &:focus-visible { outline: 2px solid var.$brand-color; outline-offset: -2px; }
+}
+
+img { object-fit: cover; }
+
+.caption {
+    position: absolute;
+    left: 1rem;
+    bottom: 2rem;
+    z-index: 1;
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .8);
+}
+
+.control {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 4rem;
+    border: 0;
+    background: none;
+    color: #fff;
+    font-size: 1.5rem;
+    opacity: 0;
+    transition: opacity .2s ease;
+
+    &.prev { left: 0; }
+    &.next { right: 0; }
+}
+
+.hero:hover .control,
+.control:focus-visible { opacity: 1; }
+
+@media (hover: none) {
+    .control { display: none; }
+}
+
+.indicators {
+    position: absolute;
+    bottom: .5rem;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: .5rem;
+
+    button {
+        width: 2rem;
+        height: .25rem;
+        padding: 0;
+        border: 0;
+        background: rgba(255, 255, 255, .5);
+
+        &.active { background: var.$brand-color; }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slide, .control { transition: none; }
+}

@@ -1,0 +1,68 @@
+:host { display: block; }
+
+.breadcrumb {
+    --bs-breadcrumb-divider-color: #fff;                         // was index.scss
+    --bs-breadcrumb-item-active-color: var(--bs-body-color);
+}
+
+// How many cards are visible: the fraction leaves a peek of the next one
+.carousel {
+    --cards: 1.25;
+    --gap: .75rem;
+    position: relative;
+
+    @media (min-width: 576px)  { --cards: 2.2; }
+    @media (min-width: 768px)  { --cards: 3.3; }
+    @media (min-width: 1200px) { --cards: 5.5; }
+}
+
+.viewport {
+    overflow-x: auto;
+    container-type: inline-size;          // lets the cards size themselves with cqw
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar { display: none; }
+}
+
+.track {
+    display: flex;
+    gap: var(--gap);
+    width: max-content;
+}
+
+.cell {
+    flex: 0 0 calc((100cqw - (var(--cards) - 1) * var(--gap)) / var(--cards));
+    scroll-snap-align: start;
+}
+
+.arrow {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    color: #fff;
+    opacity: 0;
+    transition: opacity .2s ease;
+
+    &.prev { left: 0;  background: linear-gradient(90deg,  rgba(0, 0, 0, .7), transparent); }
+    &.next { right: 0; background: linear-gradient(270deg, rgba(0, 0, 0, .7), transparent); }
+
+    &:disabled { visibility: hidden; }
+}
+
+.carousel:hover .arrow,
+.arrow:focus-visible {
+    opacity: 1;
+}
+
+// Touch screens swipe instead
+@media (hover: none) {
+    .arrow { display: none; }
+}

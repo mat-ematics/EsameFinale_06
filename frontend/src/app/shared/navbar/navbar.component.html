@@ -1,34 +1,79 @@
 <header>
   <nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
-      <a class="navbar-brand" routerLink="/">
-        <img class="navbar-brand-img" src="media/images/brand_code_light.png" alt="CODE logo">
+    <div class="container-fluid py-1">
+      <a class="navbar-brand pe-3" routerLink="/">
+        <img class="navbar-brand-img" src="media/images/brand_code_light.png" alt="CODE">
       </a>
 
       <button class="navbar-toggler" type="button" aria-controls="mainMenu"
-              [attr.aria-expanded]="menuOpen()" aria-label="Toggle navigation" (click)="toggle()">
+              [attr.aria-expanded]="menuOpen()" aria-label="Toggle navigation"
+              (click)="menuOpen.update(open => !open)">
         <span class="navbar-toggler-icon"></span>
       </button>
 
-      <div class="collapse navbar-collapse" id="mainMenu" [class.show]="menuOpen()">
-        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/browse" routerLinkActive="active" (click)="menuOpen.set(false)">Home Page</a>
-          </li>
-          @if (auth.isLoggedIn()) {
-              <li class="nav-item">
-                  <a class="nav-link" routerLink="/profile" routerLinkActive="active" (click)="menuOpen.set(false)">Profile</a>
+      <div id="mainMenu" class="collapse navbar-collapse justify-content-lg-between" [class.show]="menuOpen()">
+
+        <!-- Main menu: depends on the role -->
+        <ul class="navbar-nav mb-2 mb-lg-0">
+          @for (item of menu(); track item.label) {
+            @if (item.children; as children) {
+              <li class="nav-item dropdown">
+                <button type="button" class="nav-link dropdown-toggle" aria-haspopup="true"
+                        [attr.aria-expanded]="openDropdown() === item.label"
+                        (click)="toggleDropdown(item.label)">{{ item.label }}</button>
+                <ul class="dropdown-menu nav-dropdown" [class.show]="openDropdown() === item.label">
+                  @for (child of children; track child.label) {
+                    <li>
+                      @if (child.disabled) {
+                        <span class="dropdown-item disabled" aria-disabled="true">{{ child.label }}</span>
+                      } @else {
+                        <a class="dropdown-item" [routerLink]="child.link" [queryParams]="child.queryParams">{{ child.label }}</a>
+                      }
+                    </li>
+                  }
+                </ul>
               </li>
+            } @else {
+              <li class="nav-item">
+                <a class="nav-link" [routerLink]="item.link" [queryParams]="item.queryParams" routerLinkActive="active">{{ item.label }}</a>
+              </li>
+            }
           }
         </ul>
-        <ul class="navbar-nav">
-          <li class="nav-item">
-            @if (auth.isLoggedIn()) {
-              <button type="button" class="btn bg-brand" (click)="logout()">Sign Out</button>
-            } @else {
-              <a routerLink="/login" class="btn bg-brand" role="button" (click)="menuOpen.set(false)">Sign In</a>
-            }
-          </li>
+
+        <!-- Search and account -->
+        <ul class="navbar-nav align-items-lg-center gap-lg-4 row-gap-2">
+          @if (session.signedIn()) {
+            <li class="nav-item">
+              <form [formGroup]="searchForm" (ngSubmit)="submitSearch()" role="search" class="d-flex align-items-center gap-2">
+                <label for="navSearch" class="visually-hidden">Search</label>
+                <input id="navSearch" type="search" formControlName="q" autocomplete="off"
+                       class="form-control form-control-sm border-0 bg-light-subtle" placeholder="Search">
+                <button type="submit" class="btn p-0" aria-label="Search">
+                  <i class="bi bi-search color-brand fs-sm fw-bold"></i>
+                </button>
+              </form>
+            </li>
+
+            <li class="nav-item dropdown">
+              <button type="button" class="btn dropdown-toggle border-0 p-0" aria-haspopup="true"
+                      [attr.aria-expanded]="openDropdown() === 'user'" (click)="toggleDropdown('user')">
+                <i class="bi bi-person-circle fs-5 me-1"></i>
+                {{ session.displayName() }}
+                @if (session.isAdmin()) { <span class="badge text-bg-warning ms-1">Admin</span> }
+              </button>
+              <ul class="dropdown-menu nav-dropdown dropdown-menu-end" [class.show]="openDropdown() === 'user'">
+                <li><a class="dropdown-item" routerLink="/profile">Account</a></li>
+                <li><a class="dropdown-item" routerLink="/profile" fragment="credit">Credit</a></li>
+                <li><button type="button" class="dropdown-item" (click)="logout()">Sign out</button></li>
+              </ul>
+            </li>
+          } @else {
+            <li class="nav-item">
+              <a class="btn btn-outline-light btn-sm me-2" routerLink="/register">Register</a>
+              <a class="btn bg-brand btn-sm" routerLink="/login">Sign In</a>
+            </li>
+          }
         </ul>
       </div>
     </div>

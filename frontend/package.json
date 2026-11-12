@@ -21,6 +21,7 @@
     "@angular/router": "^22.2.3",
     "@angular/ssr": "^22.2.3",
     "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.2",
     "express": "^5.1.0",
     "js-sha256": "^1.0.0",
     "jwt-decode": "^4.0.0",

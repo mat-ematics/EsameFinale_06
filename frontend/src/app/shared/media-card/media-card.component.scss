@@ -1,0 +1,57 @@
+@use 'variables' as var;
+
+:host {
+    display: block;
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: .375rem;
+    background: var.$footer-bg-dark-custom;
+}
+
+.card-link {
+    position: absolute;
+    inset: 0;
+    display: block;
+    color: #fff;
+    text-decoration: none;
+
+    &:focus-visible {
+        outline: 2px solid var.$brand-color;
+        outline-offset: -2px;
+    }
+}
+
+img {
+    object-fit: cover;
+    transition: transform .3s ease;
+}
+
+.card-link:hover img,
+.card-link:focus-visible img {
+    transform: scale(1.05);
+}
+
+.title {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 1.5rem .75rem .5rem;
+    font-size: .875rem;
+    background: linear-gradient(0deg, rgba(0, 0, 0, .8), transparent);
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+
+.card-link:hover .title,
+.card-link:focus-visible .title {
+    opacity: 1;
+}
+
+// Touch screens have no hover: always show the title
+@media (hover: none) {
+    .title { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    img, .title { transition: none; }
+}

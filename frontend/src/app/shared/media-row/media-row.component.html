@@ -1,0 +1,37 @@
+@if (items().length) {
+  <section class="container-fluid px-4 mb-4" [attr.aria-label]="heading()">
+    <nav aria-label="breadcrumb" class="mb-2">
+      <ol class="breadcrumb m-0">
+        <li class="breadcrumb-item color-brand fw-bold">
+          @if (headingLink(); as link) {
+            <a class="text-reset text-decoration-none" [routerLink]="link">{{ heading() }}</a>
+          } @else {
+            {{ heading() }}
+          }
+        </li>
+        @if (subheading()) {
+          <li class="breadcrumb-item active" aria-current="page">{{ subheading() }}</li>
+        }
+      </ol>
+    </nav>
+
+    <div class="carousel">
+      <div #viewport class="viewport" (scroll)="update()">
+        <ul #track class="track list-unstyled m-0 p-0">
+          @for (item of items(); track key(item)) {
+            <li class="cell"><app-media-card [item]="item" /></li>
+          }
+        </ul>
+      </div>
+
+      @if (scrollable()) {
+        <button type="button" class="arrow prev" aria-label="Scroll left" [disabled]="atStart()" (click)="scrollBy(-1)">
+          <i class="bi bi-chevron-left"></i>
+        </button>
+        <button type="button" class="arrow next" aria-label="Scroll right" [disabled]="atEnd()" (click)="scrollBy(1)">
+          <i class="bi bi-chevron-right"></i>
+        </button>
+      }
+    </div>
+  </section>
+}

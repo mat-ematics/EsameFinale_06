@@ -1,0 +1,26 @@
+<main class="container-fluid px-4 py-4 min-vh-100">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+    <h1 class="h3 mb-0">{{ title() }}</h1>
+
+    <!-- Prepared for the admin CRUD -->
+    @if (session.isAdmin() && type(); as t) {
+      <button type="button" class="btn btn-outline-warning btn-sm" disabled>
+        <i class="bi bi-plus-circle"></i> Add {{ t === 'film' ? 'film' : 'TV series' }}
+      </button>
+    }
+  </div>
+
+  @if (items(); as list) {
+    @if (list.length) {
+      <ul class="grid list-unstyled m-0 p-0">
+        @for (item of list; track key(item); let i = $index) {
+          <li><app-media-card [item]="item" [priority]="i < 4" /></li>
+        }
+      </ul>
+    } @else {
+      <p class="text-muted">{{ q() ? 'No results found.' : 'Nothing here yet.' }}</p>
+    }
+  } @else {
+    <p class="text-muted">Loading…</p>
+  }
+</main>

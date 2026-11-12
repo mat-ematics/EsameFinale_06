@@ -1,0 +1,98 @@
+@if (media(); as m) {
+  <main class="detail" [style.--backdrop]="'url(' + m.image + ')'">
+    <div class="content">
+      <h1 class="title">{{ m.title }}</h1>
+
+      <p class="facts">
+        @for (fact of facts(); track fact) { <span>{{ fact }}</span> }
+      </p>
+
+      @if (m.description) { <p class="description">{{ m.description }}</p> }
+
+      <dl class="info">
+        @for (row of info(); track row.label) {
+          <dt>{{ row.label }}</dt>
+          <dd>{{ row.value }}</dd>
+        }
+      </dl>
+
+      <div class="actions d-flex flex-column flex-sm-row gap-2 mb-3">
+        <button type="button" class="btn btn-brand" (click)="play()">
+          Play <i class="bi bi-play-circle"></i>
+        </button>
+
+        <!-- Admin only (UI): the server enforces it too -->
+        @if (session.isAdmin()) {
+          <button type="button" class="btn btn-outline-warning" (click)="edit()">
+            Edit <i class="bi bi-pencil-square"></i>
+          </button>
+          @if (!confirmingDelete()) {
+            <button type="button" class="btn btn-outline-warning" (click)="confirmingDelete.set(true)">
+              Delete <i class="bi bi-trash-fill"></i>
+            </button>
+          } @else {
+            <button type="button" class="btn btn-danger" (click)="remove()">Confirm delete</button>
+            <button type="button" class="btn btn-outline-light" (click)="confirmingDelete.set(false)">Cancel</button>
+          }
+        }
+      </div>
+
+      <p class="tos">By pressing Play you accept our <span class="color-brand-dark">Terms of Use</span></p>
+    </div>
+
+    @if (m.type === 'tv-series') {
+      <section class="episodes" aria-labelledby="episodesTitle">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+          <h2 id="episodesTitle" class="h5 mb-0">Episodes</h2>
+          @if (session.isAdmin()) {
+            <button type="button" class="btn btn-outline-warning btn-sm" disabled>
+              <i class="bi bi-plus-circle"></i> Add episode
+            </button>
+          }
+        </div>
+
+        <div class="btn-group mb-3" role="group" aria-label="Season">
+          @for (s of seasons(); track s) {
+            <button type="button" class="btn btn-sm"
+                    [class.btn-brand]="s === season()" [class.btn-outline-light]="s !== season()"
+                    [attr.aria-pressed]="s === season()" (click)="chooseSeason(s)">Season {{ s }}</button>
+          }
+        </div>
+
+        <ul class="list-group list-group-flush">
+          @for (ep of episodes(); track ep.id) {
+            <li class="list-group-item bg-transparent d-flex align-items-center gap-3">
+              <span class="text-muted">{{ ep.number }}</span>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">{{ ep.title }}</div>
+                <small class="text-muted">{{ ep.durationMinutes }} min</small>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-light" [attr.aria-label]="'Play ' + ep.title" (click)="playEpisode(ep)">
+                <i class="bi bi-play-fill"></i>
+              </button>
+              @if (session.isAdmin()) {
+                <button type="button" class="btn btn-sm btn-outline-warning" [attr.aria-label]="'Edit ' + ep.title" (click)="editEpisode(ep)">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-warning" [attr.aria-label]="'Delete ' + ep.title" (click)="removeEpisode(ep)">
+                  <i class="bi bi-trash-fill"></i>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  </main>
+
+  <app-media-row [heading]="relatedHeading()" [subheading]="m.categories[0]"
+                 [headingLink]="relatedLink()" [items]="related()" />
+
+} @else if (media() === null) {
+  <main class="container py-5 min-vh-100">
+    <h1 class="h3">Not found</h1>
+    <p class="text-muted">This title does not exist or is no longer available.</p>
+  </main>
+} @else {
+  <main class="container py-5 min-vh-100"><p class="text-muted">Loading…</p></main>
+}

@@ -1,42 +1,8 @@
-<!-- features/browse/browse.component.html -->
-<main class="container py-5 min-vh-100">
-  <h2 class="mb-1">
-    Welcome, <span class="color-brand">{{ claims?.data?.name ?? 'user' }}</span>
-  </h2>
-  <p class="text-muted">The login and token flow is working.</p>
+<main>
+  <section class="container-fluid px-4 mb-4">
+    <app-hero-carousel [slides]="featured()" />
+  </section>
 
-  <div class="row g-3 mt-2">
-    <!-- What the token says -->
-    <div class="col-12 col-lg-5">
-      <div class="card bg-dark h-100">
-        <div class="card-body">
-          <h5 class="card-title">Token</h5>
-          <ul class="list-unstyled mb-0">
-            <li><strong>Username hash:</strong> <small class="text-break">{{ claims?.data?.username ?? '-' }}</small></li>
-            <li><strong>User id:</strong> {{ claims?.sub ?? '-' }}</li>
-            <li><strong>Role:</strong> {{ claims?.data?.primary_role ?? '-' }}</li>
-            <li><strong>Expires:</strong> {{ expiresAt() }}</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- A real authenticated API call -->
-    <div class="col-12 col-lg-7">
-      <div class="card bg-dark h-100">
-        <div class="card-body">
-          <h5 class="card-title">GET /api/v1/me</h5>
-
-          @switch (status()) {
-            @case ('loading') { <p class="text-muted mb-0">Calling the API…</p> }
-            @case ('ok') {
-              <p class="text-success">{{ message() }}</p>
-              <pre class="small mb-0 text-break">{{ result() | json }}</pre>
-            }
-            @case ('error') { <p class="text-danger mb-0">{{ message() }}</p> }
-          }
-        </div>
-      </div>
-    </div>
-  </div>
+  <app-media-row heading="Films" subheading="New releases" [headingLink]="filmsLink" [items]="films()" />
+  <app-media-row heading="TV Series" subheading="New releases" [headingLink]="seriesLink" [items]="series()" />
 </main>

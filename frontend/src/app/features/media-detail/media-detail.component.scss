@@ -1,0 +1,56 @@
+@use 'sass:color';
+@use 'variables' as var;
+
+:host { display: block; }
+
+.detail {
+    padding: 2rem 1.5rem 1rem;
+    background:
+        linear-gradient(90deg, var.$bg-dark-custom 40%, color.change(var.$bg-dark-custom, $alpha: 0) 100%),
+        linear-gradient(0deg,  var.$bg-dark-custom 0%,  color.change(var.$bg-dark-custom, $alpha: 0) 40%),
+        no-repeat border-box top right / cover var(--backdrop, none);
+
+    // On narrow screens the text covers the whole image: dim it for readability
+    @media (max-width: 767.98px) {
+        background:
+            linear-gradient(0deg, var.$bg-dark-custom 35%, color.change(var.$bg-dark-custom, $alpha: .6) 100%),
+            no-repeat border-box top center / cover var(--backdrop, none);
+    }
+}
+
+.content { max-width: 42rem; }
+
+.title {
+    margin-bottom: 1rem;
+    font-size: clamp(2rem, 6vw, var.$font-size-big);    // was a fixed 60px
+}
+
+.facts {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    color: var.$brand-color-secondary;
+}
+
+.description { margin-bottom: 1.5rem; }
+
+.info {
+    display: grid;
+    grid-template-columns: max-content 1fr;           // fixes the 4rem label overflow
+    gap: .25rem 1.5rem;
+    margin-bottom: 2rem;
+    color: var.$brand-color-secondary;
+
+    dt { font-weight: 600; }
+    dd { margin: 0; }
+}
+
+.tos {
+    margin: 0 0 2rem;
+    font-size: .875rem;
+}
+
+.episodes {
+    max-width: 48rem;
+    margin-top: 1rem;
+}

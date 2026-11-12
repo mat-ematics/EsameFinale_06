@@ -1,0 +1,7 @@
+<!-- shared/media-card/media-card.component.html -->
+<a class="card-link" [routerLink]="link()">
+  <!-- alt is empty on purpose: the title below is the link's accessible name -->
+  <img [ngSrc]="item().image" alt="" fill [priority]="priority()"
+       sizes="(max-width: 576px) 80vw, (max-width: 768px) 45vw, (max-width: 1200px) 30vw, 18vw">
+  <span class="title">{{ item().title }} <small>({{ item().year }})</small></span>
+</a>

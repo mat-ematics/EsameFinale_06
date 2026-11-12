@@ -1,0 +1,32 @@
+@if (slides().length) {
+  <section class="hero" aria-roledescription="carousel" aria-label="Featured titles"
+           (mouseenter)="paused.set(true)" (mouseleave)="paused.set(false)"
+           (focusin)="paused.set(true)" (focusout)="paused.set(false)">
+
+    @for (slide of slides(); track key(slide); let i = $index) {
+      <a class="slide" [class.active]="i === index()" [routerLink]="link(slide)"
+         aria-roledescription="slide" [attr.aria-label]="slide.title"
+         [attr.aria-hidden]="i !== index()" [attr.tabindex]="i === index() ? null : -1">
+        <img [ngSrc]="slide.image" alt="" fill [priority]="i === 0" sizes="100vw">
+        <span class="caption">{{ slide.title }} <small>({{ slide.year }})</small></span>
+      </a>
+    }
+
+    @if (slides().length > 1) {
+      <button type="button" class="control prev" aria-label="Previous slide" (click)="prev()">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <button type="button" class="control next" aria-label="Next slide" (click)="next()">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <div class="indicators">
+        @for (slide of slides(); track key(slide); let i = $index) {
+          <button type="button" [class.active]="i === index()"
+                  [attr.aria-label]="'Go to slide ' + (i + 1)"
+                  [attr.aria-current]="i === index()" (click)="go(i)"></button>
+        }
+      </div>
+    }
+  </section>
+}

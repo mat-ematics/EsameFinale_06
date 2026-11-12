@@ -153,6 +153,21 @@ header {
     background-color: var.$brand-color !important; //Default Background
 }
 
+// below this the menu is inline (collapsed navbar)
+@media (min-width: 992px) {
+    .nav-dropdown {
+        top: 100%;
+        left: 0;
+        margin-top: .25rem;
+
+        // the user menu: grow to the left from the right edge
+        &.dropdown-menu-end {
+            right: 0;
+            left: auto;
+        }
+    }
+}
+
 /* FOOTER */
 
 footer {
