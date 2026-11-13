@@ -20,13 +20,18 @@ export class LookupService extends ApiService {
     return this.list<CountryItem>('countries', { search: term, limit: 10 });
   }
 
-  searchMunicipalities(term: string, provinceId?: string): Observable<MunicipalityItem[]> {
+  searchMunicipalities(term: string, scope: { provinceId?: string; regionId?: string }): Observable<MunicipalityItem[]> {
     return this.list<MunicipalityItem>('italian-municipalities', {
       search: term,
       limit: 10,
-      ...(provinceId ? { province_id: provinceId } : {}),
+      ...(scope.provinceId ? { province_id: scope.provinceId } : {}),
+      ...(scope.regionId ? { region_id: scope.regionId } : {}),
     });
   }
+
+  countryByIso(iso: string): Observable<CountryItem[]> {
+    return this.list<CountryItem>('countries', { iso });
+    }
 
   municipalitiesByCap(cap: string): Observable<MunicipalityItem[]> {
     return this.list<MunicipalityItem>('italian-municipalities', { cap });

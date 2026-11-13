@@ -14,7 +14,7 @@ import { CAPPattern, emailPattern, getAge, isEmpty, namePattern, passwordPattern
 import { ErrorCodes, TAX_CODE_MISMATCH_CODES, ValidationErrorCode } from "./error_codes.js";
 import { postalCodePattern } from "./postal_codes.js";
 import { GENERIC_TAX_ID, ITALY_ISO, RegistrationFormData } from "../types/registration_form_data.js";
-import { decodeTaxCode, taxCodeMismatches } from "./tax_code.js";
+import { decodeTaxCode, looksLikeTaxCode, taxCodeMismatches } from "./tax_code.js";
 
 
 /* --- CONSTANTS --- */
@@ -252,13 +252,16 @@ export const validateCAP = (cap: string, countryIso: string): FieldValidationRes
  */
 export function validateTaxCode(data: RegistrationFormData): FieldValidationResult {
     const code = safeTrim(data.tax_code).toUpperCase();
-    const italy = data.country_iso === ITALY_ISO;
+    const requiredHere = data.country_iso === ITALY_ISO;
 
     if (isEmpty(code)) {
-        return italy ? { isValid: false, errorCode: ErrorCodes.REQUIRED } : validFieldResult;
+        return requiredHere ? { isValid: false, errorCode: ErrorCodes.REQUIRED } : validFieldResult;
     }
 
-    if (!italy) {
+    // Italian rules apply to residents, to people born in Italy and to anything shaped like a codice fiscale
+    const italian = requiredHere || data.birth_country_iso === ITALY_ISO || looksLikeTaxCode(code);
+
+    if (!italian) {
         return GENERIC_TAX_ID.test(code)
             ? validFieldResult
             : { isValid: false, errorCode: ErrorCodes.INVALID_TAX_CODE };
@@ -273,11 +276,24 @@ export function validateTaxCode(data: RegistrationFormData): FieldValidationResu
         birthdate: data.birthdate,
         gender: data.gender,
         birthPlaceCode: data.birth_catastal_code,
+        birthAbroad: data.birth_country_iso ? data.birth_country_iso !== ITALY_ISO : undefined,
     })[0];
 
     return mismatch
         ? { isValid: false, errorCode: TAX_CODE_MISMATCH_CODES[mismatch] }
         : validFieldResult;
+}
+
+/** Optional. When a municipality of birth is chosen it must agree with the tax code */
+export function validateBirthMunicipality(data: RegistrationFormData): FieldValidationResult {
+    if (data.birth_country_iso !== ITALY_ISO || !data.birth_catastal_code) return validFieldResult;
+
+    const decoded = decodeTaxCode(data.tax_code);
+    if (!decoded) return validFieldResult;           // an invalid code is reported on its own field
+
+    return decoded.birthPlaceCode === data.birth_catastal_code.trim().toUpperCase()
+        ? validFieldResult
+        : { isValid: false, errorCode: ErrorCodes.TAX_CODE_BIRTHPLACE_MISMATCH };
 }
 
 /**

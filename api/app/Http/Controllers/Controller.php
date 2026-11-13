@@ -23,7 +23,7 @@ abstract class Controller
     )
     {
         $term = trim((string) $request->query('search', ''));
-        abort_if(mb_strlen($term) < $minCharLength, 422, "The search term must be at least " . $minCharLength . "characters");
+        abort_if(mb_strlen($term) < $minCharLength, 422, "The search term must be at least " . $minCharLength . " characters");
 
         $limit = min(max((int) $request->query('limit', $defaultRecordNum), 1), $maxRecordNum);
         $like  = addcslashes($term, '%_\\');   // the user's % and _ are literals, not wildcards

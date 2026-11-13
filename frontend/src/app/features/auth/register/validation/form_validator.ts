@@ -14,7 +14,7 @@
 import { COUNTRY_ITALY_ID, ITALY_ISO, RegistrationFormData } from "../types/registration_form_data.js";
 import { FieldName } from "../types/registration_form_data.js";
 import { ErrorCodes } from "./error_codes.js";
-import { validateBirthDate, validateCAP, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateTaxCode, validateText, validateUsername } from "./field_validators.js";
+import { validateBirthDate, validateBirthMunicipality, validateCAP, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateTaxCode, validateText, validateUsername } from "./field_validators.js";
 import { createValidFieldResult, FieldValidationResult, FormFieldsValidationResult, FormValidationResult } from "./validation_types.js";
 
 
@@ -29,29 +29,31 @@ import { createValidFieldResult, FieldValidationResult, FormFieldsValidationResu
  * its conditional requirement (only required when country is Italy).
  */
 const fieldValidatorsMap = {
-    name: (data: RegistrationFormData) => validateName(data.name),
-    surname: (data: RegistrationFormData) => validateName(data.surname),
-    email: (data: RegistrationFormData) => validateEmail(data.email),
+    // Account
     username: (data: RegistrationFormData) => validateUsername(data.username),
+    email: (data: RegistrationFormData) => validateEmail(data.email),
     password: (data: RegistrationFormData) => validatePassword(data.password),
     confirm_password: (data: RegistrationFormData) => validateConfirmPassword(data.password, data.confirm_password),
+    // Personal
+    name: (data: RegistrationFormData) => validateName(data.name),
+    surname: (data: RegistrationFormData) => validateName(data.surname),
     birthdate: (data: RegistrationFormData) => validateBirthDate(data.birthdate),
     gender: (data: RegistrationFormData) => validateSelect(data.gender),
+    birth_country_id: (data: RegistrationFormData) => validateSelect(data.birth_country_id),
+    birth_country_iso: () => createValidFieldResult(),
+    birth_municipality_id: (data: RegistrationFormData) => validateBirthMunicipality(data),
+    birth_catastal_code: () => createValidFieldResult(),
+    tax_code: (data: RegistrationFormData) => validateTaxCode(data),
+    // Residence
     country_id: (data: RegistrationFormData) => validateSelect(data.country_id),
-    italian_municipality_id: () => createValidFieldResult(),
     country_iso: () => createValidFieldResult(),
-    region_id: () => createValidFieldResult(),
-    province_id: () => createValidFieldResult(),
+    italian_municipality_id: () => createValidFieldResult(),     // conditional: see validateRegistrationField
     street_address: (data: RegistrationFormData) => validateText(data.street_address),
     house_number: (data: RegistrationFormData) => validateText(data.house_number),
     cap: (data: RegistrationFormData) => validateCAP(data.cap, data.country_iso),
-    locality: (data: RegistrationFormData) =>
-        validateText(data.locality ?? '', { required: false }),
-    additional_info: (data: RegistrationFormData) =>
-        validateText(data.additional_info ?? '', { required: false }),
-    tax_code: (data: RegistrationFormData) => validateTaxCode(data),
-    birth_municipality_id: () => createValidFieldResult(),
-    birth_catastal_code: () => createValidFieldResult(),
+    locality: (data: RegistrationFormData) => validateText(data.locality ?? '', { required: false }),
+    additional_info: (data: RegistrationFormData) => validateText(data.additional_info ?? '', { required: false }),
+    // Credit
     credit: (data: RegistrationFormData) => validateCredit(data.credit),
     currency: (data: RegistrationFormData) => validateSelect(data.currency),
 } as const;

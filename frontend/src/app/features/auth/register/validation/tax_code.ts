@@ -16,6 +16,14 @@ const STRUCTURE = /^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A
 /** The year has 2 digits: we assume registrants are at least this old to pick the century */
 export const MIN_REGISTRATION_AGE = 18;
 
+/** True for anything shaped like a codice fiscale (before checking the check character) */
+export const looksLikeTaxCode = (value: string): boolean => STRUCTURE.test(value.trim().toUpperCase());
+
+export type TaxCodeCheck = Partial<TaxCodeInput> & {
+    /** true / false when the country of birth is known, undefined when it is not */
+    birthAbroad?: boolean,
+};
+
 export interface TaxCodeInput {
     name: string,
     surname: string,
@@ -151,7 +159,7 @@ export function decodeTaxCode(raw: string, today = new Date()): DecodedTaxCode |
 }
 
 /** Compares a decoded code with the data typed in the form. Only the provided data is compared */
-export function taxCodeMismatches(decoded: DecodedTaxCode, input: Partial<TaxCodeInput>): TaxCodeMismatch[] {
+export function taxCodeMismatches(decoded: DecodedTaxCode, input: TaxCodeCheck): TaxCodeMismatch[] {
     const out: TaxCodeMismatch[] = [];
 
     const name = input.name ? nameCode(input.name) : null;
@@ -169,8 +177,12 @@ export function taxCodeMismatches(decoded: DecodedTaxCode, input: Partial<TaxCod
         out.push('gender');
     }
 
-    const place = input.birthPlaceCode?.trim().toUpperCase();
-    if (place && place !== decoded.birthPlaceCode) out.push('birthplace');
+    if (input.birthAbroad !== undefined && input.birthAbroad !== decoded.abroad) {
+        out.push('birthplace');
+    } else if (!decoded.abroad) {
+        const place = input.birthPlaceCode?.trim().toUpperCase();
+        if (place && place !== decoded.birthPlaceCode) out.push("birthplace");
+    }
 
     return out;
 }

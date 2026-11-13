@@ -9,6 +9,10 @@ use Illuminate\Contracts\Validation\ValidationRule;
 
 class TaxCodeRule implements DataAwareRule, ValidationRule
 {
+    /** Same shape as the structure check in ItalianTaxCode (omocodia included) */
+    private const CF_SHAPE = 
+        '/^[A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]$/';
+
     protected array $data = [];
 
     public function __construct(private ?string $iso) {}
@@ -23,8 +27,11 @@ class TaxCodeRule implements DataAwareRule, ValidationRule
     {
         $code = strtoupper(trim((string) $value));
 
+        // Italian rules apply in Italy and to anything shaped like a codice fiscale
+        $italian = $this->iso === 'IT' || preg_match(self::CF_SHAPE, $code) === 1;
+
         // Any other country: free-form tax ID
-        if ($this->iso !== 'IT') {
+        if (!$italian) {
             if (!preg_match('/^[A-Z0-9][A-Z0-9 .\/-]{3,18}[A-Z0-9]$/', $code)) {
                 $fail('The :attribute is not valid.');
             }

@@ -43,7 +43,9 @@ class ItalianMunicipalityService {
                 'p.code as province_code',
             ])
             ->when($data['province_id'] ?? null,
-                fn ($q, $id) => $q->where('italian_municipalities.province_id', $id));
+                fn ($q, $id) => $q->where('italian_municipalities.province_id', $id))
+            ->when($data['region_id'] ?? null,
+                fn ($q, $id) => $q->where('p.region_id', $id));
 
         if (!empty($data['catastal_code'])) {
             $query->where('italian_municipalities.catastal_code', strtoupper($data['catastal_code']));

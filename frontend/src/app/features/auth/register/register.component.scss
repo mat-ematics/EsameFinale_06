@@ -8,10 +8,26 @@ main {
 }
 
 #formRegister {
-    width: 95%;
+    width: 100%;
+    max-width: 56rem;
+}
 
-    @media screen and (min-width: 768px)  { width: 80%; }
-    @media screen and (min-width: 1200px) { width: 50%; }
+// Section titles
+.form-section {
+    margin-bottom: 1.5rem;
+
+    legend {
+        float: none;                       // Bootstrap floats legends
+        width: 100%;
+        margin-bottom: 1rem;
+        padding-bottom: .5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, .12);
+        font-size: .8rem;
+        font-weight: 600;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var.$brand-color;
+    }
 }
 
 .input-group-credit {

@@ -25,13 +25,23 @@ class CountryController extends Controller
      */
     public function index(Request $request)
     {
+        if ($request->filled('iso')) {
+            $request->validate(['iso' => 'alpha|size:2']);
+
+            return AppHelpers::jsonResponse(
+                'Country Successfully Retrieved',
+                200,
+                Country::where('iso', strtoupper($request->query('iso')))->get(['id', 'name', 'iso'])->toArray(),
+            );
+        }
+
         if ($request->filled('search')) {
             return $this->lookupSearch(Country::class, $request, extra: ['iso']);
         }
 
         $countries = $this->countryService->getCountryCollectionInfo(Country::all(), Gate::check('isAdmin'));
         return AppHelpers::jsonResponse(
-            empty($countries) ? 'Countries Successfully Retrieved!' : "There are no Countries present at the moment",
+            !empty($countries) ? 'Countries Successfully Retrieved!' : "There are no Countries present at the moment",
             200, 
             $countries ?: [],
         );

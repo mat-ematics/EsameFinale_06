@@ -1,4 +1,4 @@
-import { Component, forwardRef, input, output, signal } from '@angular/core';
+import { Component, computed, forwardRef, input, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Observable, Subject, catchError, debounceTime, of, switchMap } from 'rxjs';
@@ -24,6 +24,8 @@ export class TypeaheadComponent implements ControlValueAccessor {
   readonly invalid = input(false);
   readonly blurred = output<void>();
   readonly picked = output<LookupItem | null>();
+
+  readonly hasUnselectedText = computed(() => !this.selected() && this.text().trim().length > 0);
 
   protected text = signal('');
   protected items = signal<LookupItem[]>([]);

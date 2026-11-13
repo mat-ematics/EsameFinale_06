@@ -4,6 +4,7 @@ namespace App\Http\Requests\Location\ItalianMunicipality;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class ItalianMunicipalityReadRequest extends FormRequest
 {
@@ -23,10 +24,11 @@ class ItalianMunicipalityReadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search'      => 'required_without:cap|nullable|string|min:3|max:100',
-            'cap'         => 'required_without:search|nullable|digits:5',
+            'search'        => 'required_without_all:cap,catastal_code|nullable|string|min:3|max:100',
+            'cap'           => 'required_without_all:search,catastal_code|nullable|digits:5',
             'catastal_code' => 'required_without_all:search,cap|nullable|alpha_num|size:4',
-            'province_id' => 'nullable|integer',
+            'region_id'   => 'nullable|integer',
+            'province_id' => ['nullable', 'integer'],
             'limit'       => 'nullable|integer|min:1|max:25',
         ];
     }

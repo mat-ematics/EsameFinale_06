@@ -1,0 +1,39 @@
+<div class="row">
+  <div class="col-12 col-md-6 mb-3">
+    <label class="form-label" [attr.for]="idPrefix() + '-region'">Region</label>
+    <select class="form-select" [id]="idPrefix() + '-region'" [disabled]="disabled()"
+            (change)="onRegionChange($any($event.target).value)">
+      <option value="" [selected]="!regionId()">Select a region</option>
+      @for (region of geo.regions(); track region.id) {
+        <option [value]="region.id" [selected]="same(region.id, regionId())">{{ region.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="col-12 col-md-6 mb-3">
+    <label class="form-label" [attr.for]="idPrefix() + '-province'">Province</label>
+    <select class="form-select" [id]="idPrefix() + '-province'" [disabled]="disabled() || !regionId()"
+            (change)="onProvinceChange($any($event.target).value)">
+      <option value="" [selected]="!provinceId()">{{ regionId() ? 'Select a province' : 'Select a region first' }}</option>
+      @for (province of provinces(); track province.id) {
+        <option [value]="province.id" [selected]="same(province.id, provinceId())">{{ province.name }} ({{ province.code }})</option>
+      }
+    </select>
+  </div>
+</div>
+
+<div class="mb-3">
+  <label class="form-label" [attr.for]="idPrefix() + '-municipality'">
+    {{ label() }} @if (required()) { <span class="required-text">*</span> }
+  </label>
+  <app-typeahead
+    [inputId]="idPrefix() + '-municipality'"
+    placeholder="Start typing the municipality…"
+    [search]="search"
+    [valid]="valid()"
+    [invalid]="invalid()"
+    (picked)="onPicked($event)"
+    (blurred)="onBlur()" />
+  <!-- hints and the error message come from the parent -->
+  <ng-content />
+</div>

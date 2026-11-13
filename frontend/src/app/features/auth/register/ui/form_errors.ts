@@ -84,6 +84,26 @@ export const FieldErrorMessagesMap: FieldErrorMessages = {
     gender: {
         REQUIRED: "Select a gender",
     },
+    birth_country_id: {
+        REQUIRED: "Select your country of birth"
+    },
+    birth_country_iso: {},
+    birth_municipality_id: {
+        MUNICIPALITY_NOT_SELECTED: "Select a municipality from the suggestions",
+        TAX_CODE_BIRTHPLACE_MISMATCH: "The municipality of birth does not match the tax code",
+    },
+    birth_catastal_code: {},
+    // in tax_code: this message now also covers the country of birth
+    //   TAX_CODE_BIRTHPLACE_MISMATCH: "The tax code does not match the place of birth",
+        tax_code: {
+        REQUIRED: "Tax code is required",
+        INVALID_TAX_CODE: "Enter a valid tax code",
+        TAX_CODE_NAME_MISMATCH: "The tax code does not match your name",
+        TAX_CODE_SURNAME_MISMATCH: "The tax code does not match your surname",
+        TAX_CODE_BIRTHDATE_MISMATCH: "The tax code does not match your date of birth",
+        TAX_CODE_GENDER_MISMATCH: "The tax code does not match your gender",
+        TAX_CODE_BIRTHPLACE_MISMATCH: "The tax code does not match the municipality of birth",
+    },
     country_id: {
         REQUIRED: "Select a country from the suggestions",
     },
@@ -102,17 +122,6 @@ export const FieldErrorMessagesMap: FieldErrorMessages = {
     },
     locality: {}, //optional
     additional_info: {}, //optional
-    tax_code: {
-        REQUIRED: "Tax code is required",
-        INVALID_TAX_CODE: "Enter a valid tax code",
-        TAX_CODE_NAME_MISMATCH: "The tax code does not match your name",
-        TAX_CODE_SURNAME_MISMATCH: "The tax code does not match your surname",
-        TAX_CODE_BIRTHDATE_MISMATCH: "The tax code does not match your date of birth",
-        TAX_CODE_GENDER_MISMATCH: "The tax code does not match your gender",
-        TAX_CODE_BIRTHPLACE_MISMATCH: "The tax code does not match the municipality of birth",
-    },
-    birth_municipality_id: {},   // helper only
-    birth_catastal_code: {},     // helper only
     credit: {
         REQUIRED: "Credit is required",
         INVALID_CREDIT: "Credit must be a positive amount",

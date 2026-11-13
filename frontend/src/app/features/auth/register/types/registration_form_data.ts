@@ -56,27 +56,31 @@ export type currency = "EUR" | "USD";
  * - additional_info (user notes)
  */
 export interface RegistrationFormData {
+    // Account
+    username: string,
+    email: string,
+    password: string,
+    confirm_password: string,               // UI only
+    // Personal
     name: string,
     surname: string,
-    email: string,
-    username: string,
-    password: string,
-    confirm_password: string,
     birthdate: string,
     gender: gender,
-    country_id: string,
-    country_iso: string,          // UI only: lets validators know the country
-    region_id?: string,           // UI only
-    province_id?: string,         // UI only
-    italian_municipality_id?: string,
-    birth_municipality_id?: string,   // UI only
-    birth_catastal_code?: string,     // UI only
+    birth_country_id: string,               // UI only
+    birth_country_iso: string,              // UI only
+    birth_municipality_id?: string,         // UI only
+    birth_catastal_code?: string,           // UI only
     tax_code: string,
+    // Residence
+    country_id: string,
+    country_iso: string,                    // UI only
+    italian_municipality_id?: string,
     street_address: string,
     house_number: string,
     cap: string,
     locality?: string,
     additional_info?: string,
+    // Credit
     credit: string,
     currency: currency,
 }
@@ -113,29 +117,31 @@ export function extractRegistrationFormData(form: HTMLFormElement): Registration
     const data = new FormData(form);
 
     return {
+        //Account
         name: data.get("name") as string,
         surname: data.get("surname") as string,
         email: data.get("email") as string,
         username: data.get("username") as string,
         password: data.get("password") as string,
         confirm_password: data.get('confirm_password') as string,
+        //Personal
         birthdate: data.get("birthdate") as string,
         gender: data.get("gender") as gender,
-        country_id: data.get("country_id") as string,
-        country_iso: data.get("country_iso") as string,
-        // Optional field with fallback to empty string
-        region_id: (data.get('region_id') as string) ?? "",
-        province_id: (data.get('province_id') as string) ?? "",
-        italian_municipality_id: (data.get("italian_municipality_id") as string) ?? '',
-        birth_municipality_id: (data.get("birth_municipality_id") as string) ?? '',
+        birth_country_id: data.get("birth_country_id") as string,
+        birth_country_iso: data.get("birth_country_iso") as string,
+        birth_municipality_id: (data.get("birth_country_id") as string) ?? '',
         birth_catastal_code: (data.get("birth_catastal_code") as string) ?? '',
         tax_code: data.get('tax_code') as string,
+        //Address
+        country_id: (data.get('country_id') as string) ?? "",
+        country_iso: (data.get('country_iso') as string) ?? "",
+        italian_municipality_id: (data.get("italian_municipality_id") as string) ?? '',
         street_address: data.get("street_address") as string,
         house_number: data.get("house_number") as string,
         cap: data.get("cap") as string,
-        // Optional fields
         locality: data.get("locality") as string,
         additional_info: data.get("additional_info") as string,
+        //Credit
         credit: data.get("credit") as string,
         currency: data.get("currency") as currency,
     }
