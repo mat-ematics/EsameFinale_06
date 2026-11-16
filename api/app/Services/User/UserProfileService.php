@@ -30,9 +30,12 @@ class UserProfileService {
 
     public function updateProfile(User $authUser, array $data) : UserProfileResource
     {
+        // An explicit null means "remove the tax code": remember it before filtering the nulls
+        $clearsTaxCode = array_key_exists('tax_code', $data) && $data['tax_code'] === null;
+
         $data = array_filter($data, fn ($value) => $value !== null);
 
-        DB::transaction(function () use ($authUser, $data) {
+        DB::transaction(function () use ($authUser, $data, $clearsTaxCode) {
 
             //Update di Utente e Password
             if (!empty($data['username'])) {
@@ -43,10 +46,9 @@ class UserProfileService {
                 $this->passwordService->updatePassword($authUser, $data['password']);
             }
     
-            //Filtro e Aggiornamento delle Informazioni Profilo
-            $profileData = Arr::only($data, ['name', 'surname', 'email', 'birthdate', 'gender']);
-    
-            //Update Profilo
+            $profileData = Arr::only($data, ['name', 'surname', 'email', 'birthdate', 'gender', 'tax_code']);
+            if ($clearsTaxCode) $profileData['tax_code'] = null;
+
             if (!empty($profileData)) {
                 $authUser->userProfile->update($profileData);
             }

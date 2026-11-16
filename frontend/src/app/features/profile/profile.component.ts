@@ -1,6 +1,5 @@
-import { Component, inject, signal, WritableSignal } from '@angular/core';
+import { Component, computed, inject, signal, WritableSignal } from '@angular/core';
 import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
-import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
@@ -9,14 +8,20 @@ import { Profile, ProfileService } from '../../core/profile.service';
 import { UtilitiesService } from '../../core/utilities.service';
 import { validateBirthDate, validateConfirmPassword, validateCredit, validateEmail, validateName, validatePassword, validateRequired, validateSelect, validateUsername } from '../auth/register/validation/field_validators';
 import { FieldValidationResult } from '../auth/register/validation/validation_types';
+import { ITALY_ISO, RegistrationFormData } from '../auth/register/types/registration_form_data';
+import { validateRegistrationField } from '../auth/register/validation/form_validator';
 import { getFieldErrorMessage } from '../auth/register/ui/form_errors';
 import { PasswordFieldComponent } from '../../shared/password-field/password-field.component.js';
 import { FieldName } from '../auth/register/types/registration_form_data.js';
+import { ProfileAddressComponent } from './profile-address/profile-address.component';
+import { ModalComponent } from '../../shared/modal/modal.component';
 
-type EditField = 'name' | 'surname' | 'email' | 'birthdate' | 'gender';
-const FIELDS: EditField[] = ['name', 'surname', 'email', 'birthdate', 'gender'];
+type EditField = 'name' | 'surname' | 'email' | 'birthdate' | 'gender' | 'tax_code';
+const FIELDS: EditField[] = ['name', 'surname', 'email', 'birthdate', 'gender', 'tax_code'];
+/** Fields the tax code is derived from: changing one of them re-checks the code */
+const TAX_CODE_SOURCES: EditField[] = ['name', 'surname', 'birthdate', 'gender'];
 
-const VALIDATORS: Record<EditField, (value: string) => FieldValidationResult> = {
+const VALIDATORS: Record<Exclude<EditField, 'tax_code'>, (value: string) => FieldValidationResult> = {
   name: validateName,
   surname: validateName,
   email: validateEmail,
@@ -37,7 +42,7 @@ const SEC_FIELD: Partial<Record<SecKey, FieldName>> = {
 
 @Component({
   selector: 'app-profile',
-  imports: [ReactiveFormsModule, NgClass, DatePipe, CurrencyPipe, PasswordFieldComponent],
+  imports: [ReactiveFormsModule, NgClass, DatePipe, CurrencyPipe, PasswordFieldComponent, ProfileAddressComponent, ModalComponent],
   templateUrl: './profile.component.html',
 })
 export class ProfileComponent {
@@ -63,7 +68,9 @@ export class ProfileComponent {
   protected serverErrors = signal<Record<string, string>>({});
   protected formError = signal<string | null>(null);
 
-  protected form = this.fb.group({ name: [''], surname: [''], email: [''], birthdate: [''], gender: [''] });
+protected form = this.fb.group({ name: [''], surname: [''], email: [''], birthdate: [''], gender: [''], tax_code: [''] });
+/** Residents of Italy must have a code */
+protected taxCodeRequired = computed(() => (this.profile().residence_iso ?? '').toUpperCase() === ITALY_ISO);
 
     /* --------- Security (username and password) --------- */
   protected usernameForm = this.fb.group({ username: [''], current_password: [''] });
@@ -116,6 +123,21 @@ export class ProfileComponent {
 
   /* --------- Personal data --------- */
 
+  /** The registration validators read a RegistrationFormData: fill in what the tax code rule needs */
+    private registrationData(): RegistrationFormData {
+        return {
+            ...this.form.getRawValue(),
+            country_iso: (this.profile().residence_iso ?? '').toUpperCase(),   // required / Italian rules
+            birth_country_iso: '',            // not stored: the code is not compared with it
+            birth_catastal_code: '',
+        } as unknown as RegistrationFormData;
+    }
+    private validate(field: EditField): FieldValidationResult {
+        return field === 'tax_code'
+            ? validateRegistrationField('tax_code', this.registrationData())
+            : VALIDATORS[field](this.form.controls[field].value.trim());
+    }
+
   private resetForm() {
     const p = this.profile();
     this.form.reset({
@@ -124,6 +146,7 @@ export class ProfileComponent {
       email: p.email ?? '',
       birthdate: (p.birthdate ?? '').slice(0, 10),    // the API may send a full timestamp
       gender: p.gender ?? '',
+      tax_code: p.tax_code ?? '',
     });
     this.results.set({});
     this.serverErrors.set({});
@@ -151,49 +174,51 @@ export class ProfileComponent {
     return result && !result.isValid ? getFieldErrorMessage(field, result.errorCode) : '';
   }
 
-  onBlur(field: EditField) {
-    const result = VALIDATORS[field](this.form.controls[field].value.trim());
-    this.results.update(r => ({ ...r, [field]: result }));
-    this.serverErrors.update(({ [field]: _removed, ...rest }) => rest);
-  }
+    protected onBlur(field: EditField) {
+        this.results.update(r => ({ ...r, [field]: this.validate(field) }));
+        this.serverErrors.update(({ [field]: _removed, ...rest }) => rest);
 
+        // The tax code depends on these fields: re-check it if it is already showing a result
+        if (TAX_CODE_SOURCES.includes(field) && this.results().tax_code) {
+            this.results.update(r => ({ ...r, tax_code: this.validate('tax_code') }));
+        }
+    }
   save() {
-    const values = this.form.getRawValue();
-    const results = Object.fromEntries(
-      FIELDS.map(f => [f, VALIDATORS[f](values[f].trim())])
-    ) as Record<EditField, FieldValidationResult>;
+    const results = Object.fromEntries(FIELDS.map(f => [f, this.validate(f)])) as Record<EditField, FieldValidationResult>;
 
     this.results.set(results);
     this.serverErrors.set({});
     this.formError.set(null);
     if (FIELDS.some(f => !results[f].isValid)) return;
 
-    // Send only what changed: an untouched e-mail can't trip the "unique" rule
+    // Send only what changed: an untouched e-mail or code can't trip a "unique" rule
+    const values = this.form.getRawValue();
     const original = this.profile();
-    const changes: Record<string, string> = {};
+    const changes: Record<string, string | null> = {};
+
     for (const f of FIELDS) {
-      const now = values[f].trim();
-      const before = f === 'birthdate' ? (original.birthdate ?? '').slice(0, 10) : String(original[f] ?? '');
-      if (now !== before) changes[f] = now;
+        const now = f === 'tax_code' ? values.tax_code.trim().toUpperCase() : values[f].trim();
+        const before = f === 'birthdate' ? (original.birthdate ?? '').slice(0, 10) : String(original[f] ?? '');
+        if (now !== before) changes[f] = f === 'tax_code' ? (now || null) : now;   // null removes the code
     }
 
     if (!Object.keys(changes).length) {
-      this.editing.set(false);
-      return;
+        this.editing.set(false);
+        return;
     }
 
     this.saving.set(true);
     this.api.updateMe(changes)
-      .pipe(finalize(() => this.saving.set(false)))
-      .subscribe({
+        .pipe(finalize(() => this.saving.set(false)))
+        .subscribe({
         next: () => {
-          this.editing.set(false);
-          this.notice.set('Profile updated');
-          this.load(false);                       // refresh without the loading screen
+            this.editing.set(false);
+            this.notice.set('Profile updated');
+            this.load(false);
         },
         error: err => this.handleError(err),
-      });
-  }
+        });
+    }
 
   private handleError(err: unknown) {
     const { message, fields } = apiErrorDetails(err);

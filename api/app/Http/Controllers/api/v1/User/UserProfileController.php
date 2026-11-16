@@ -5,26 +5,38 @@ namespace App\Http\Controllers\api\v1\User;
 use App\Helpers\AppHelpers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\Credit\CreditStoreRequest;
+use App\Http\Requests\User\UserProfile\AddressUpdateRequest;
 use App\Http\Requests\User\UserProfile\UserProfileUpdateRequest;
+use App\Models\Location\Country;
 use App\Models\User\Credit;
+use App\Models\User\User;
 use App\Services\Authentication\AuthService;
+use App\Services\User\AddressService;
 use App\Services\User\UserProfileService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class UserProfileController extends Controller
 {
     protected UserProfileService $profileService;
     protected AuthService $authService;
+    protected AddressService $addressService;
     
     /**
      * Inizializzatore dei Servizi
      */
-    public function __construct(UserProfileService $profileService, AuthService $authService)
+    public function __construct(
+        UserProfileService $profileService,
+        AuthService $authService,
+        AddressService $addressService,
+    )
     {
         $this->profileService = $profileService;
         $this->authService = $authService;
+        $this->addressService = $addressService;
     }
 
     /**
@@ -32,11 +44,17 @@ class UserProfileController extends Controller
      */
     public function showCurrentUser()
     {
-        $user = Auth::user();
-        $userProfile = $this->profileService->getProfile($user);
-        return AppHelpers::jsonResponse('Profile Successfully Retrieved', 200, $userProfile);
-    }
+        $user     = Auth::user();
+        $resource = $this->profileService->getProfile($user);
+        $base     = $resource instanceof JsonResource ? $resource->resolve() : (array) $resource;
 
+        $countryId = $user->address?->country_id;
+
+        return AppHelpers::jsonResponse('Profile Successfully Retrieved', 200, array_merge($base, [
+            'tax_code'      => $user->userProfile?->tax_code,
+            'residence_iso' => $countryId ? Country::whereKey($countryId)->value('iso') : null,
+        ]));
+    }
     public function updateCurrentUser(UserProfileUpdateRequest $request)
     {
         $user = Auth::user();
@@ -89,5 +107,27 @@ class UserProfileController extends Controller
 
         $credit = (float) $this->profileService->removeCredit($user, $amount);
         return AppHelpers::jsonResponse('Credit Removed', 200, ['credit' => $credit]);
-}
+    }
+
+    public function showAddress() {
+        return AppHelpers::jsonResponse(
+            'Address Successfully Retrieved',
+            200,
+            $this->addressService->getUserAddressData(Auth::user()),
+        );
+    }
+
+    public function updateAddress(AddressUpdateRequest $request)
+    {
+        $user = Auth::user();
+        if (!$user instanceof User) {
+            abort(401);
+        }
+        $this->addressService->replaceAddress($user, $request->validated());
+
+        return AppHelpers::jsonResponse(
+            'Address Successfully Updated', 200,
+            $this->addressService->getUserAddressData($user->fresh())
+        );
+    }
 }

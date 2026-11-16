@@ -183,6 +183,10 @@ Route::prefix('v1')->group(function () {
             //UPDATE Credito
             Route::put('/credit/add', [UserProfileController::class, 'addCredit']);
             Route::put('/credit/remove', [UserProfileController::class, 'removeCredit']);
+            //READ Indirizzo
+            Route::get('/address', [UserProfileController::class, 'showAddress']);
+            //UPDATE Indirizzo
+            Route::put('/address', [UserProfileController::class, 'updateAddress'])->middleware('throttle:20,1');
         });
 
         /* ---- UTENTE (SOLO AMMINISTRATORI) ---- */

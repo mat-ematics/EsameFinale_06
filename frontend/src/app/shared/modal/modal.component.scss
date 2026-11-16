@@ -1,0 +1,30 @@
+dialog {
+    width: min(42rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, .15);
+    border-radius: .5rem;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, .6);
+
+    &[open] { animation: modal-in .15s ease-out; }
+    &::backdrop { background: rgba(0, 0, 0, .65); }
+
+    
+    header {
+        background-color: auto;
+    }
+
+}
+
+.panel { padding: 1.5rem; }
+
+@keyframes modal-in {
+    from { opacity: 0; transform: translateY(-.5rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    dialog[open] { animation: none; }
+}

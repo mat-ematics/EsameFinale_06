@@ -22,4 +22,4 @@ export const POSTAL_CODE_FORMATS: Record<string, PostalCodeFormat> = {
 export const GENERIC_POSTAL_CODE = /^[A-Z0-9][A-Z0-9 -]{1,9}[A-Z0-9]$/;
 
 export const postalCodePattern = (iso: string): RegExp =>
-    POSTAL_CODE_FORMATS[iso]?.pattern ?? GENERIC_POSTAL_CODE;
+    POSTAL_CODE_FORMATS[iso.trim().toUpperCase()]?.pattern ?? GENERIC_POSTAL_CODE;

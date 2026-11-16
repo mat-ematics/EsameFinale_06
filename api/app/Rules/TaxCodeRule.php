@@ -15,7 +15,7 @@ class TaxCodeRule implements DataAwareRule, ValidationRule
 
     protected array $data = [];
 
-    public function __construct(private ?string $iso) {}
+    public function __construct(private ?string $iso, private ?array $identity = null ) {}
 
     public function setData(array $data): static
     {
@@ -44,7 +44,7 @@ class TaxCodeRule implements DataAwareRule, ValidationRule
             return;
         }
 
-        foreach (ItalianTaxCodeHelper::mismatches($decoded, $this->data) as $field) {
+        foreach (ItalianTaxCodeHelper::mismatches($decoded, $this->identity ?? $this->data) as $field) {
             $fail("The :attribute does not match the {$field}.");
         }
     }

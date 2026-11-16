@@ -3,14 +3,14 @@
 namespace App\Events;
 
 use App\Models\Media\TvSeries;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
+/**
+ * Evento per il cambio del numero di episodi
+ */
 class TvSeriesCountsChanged
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;

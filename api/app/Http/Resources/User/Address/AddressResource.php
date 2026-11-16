@@ -25,7 +25,6 @@ class AddressResource extends JsonResource
      * Return public columns
      */
     protected function getPublicColumns(Request $request) {
-        $data = parent::toArray($request);
 
         $country = Country::find($this->country_id);
         $municipality = ItalianMunicipality::find($this->italian_municipality_id) ?? null;

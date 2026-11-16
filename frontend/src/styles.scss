@@ -54,6 +54,9 @@ input[type="date"] {
     visibility: hidden;
 }
 
+.inherit-bg {
+    background-color: inherit;
+}
 
 /* --- GLOBAL STYLE CLASSES --- */
 
@@ -136,6 +139,11 @@ input[type="date"] {
 
 body {
     background-color: var.$bg-dark-custom;
+}
+
+/* --- MODAL --- */
+body:has(dialog[open]) {
+    overflow: hidden;
 }
 
 /* HEADER/NAVBAR STYLES */

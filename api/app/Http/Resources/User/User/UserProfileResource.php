@@ -23,8 +23,9 @@ class UserProfileResource extends JsonResource
      */
     protected function getPublicColumns(Request $request) {
 
+        $address = (new AddressResource($this->address))->toArray($request);
 
-        return  [
+        $data =  [
             'username' => $this->username,
             'roles' => $this->roles()->get()->pluck('name'),
             'email' => $this->userProfile->email,
@@ -32,15 +33,15 @@ class UserProfileResource extends JsonResource
             'surname' => $this->userProfile->surname,
             'birthdate' => $this->userProfile->birthdate,
             'gender' => $this->userProfile->gender,
+            'tax_code' => $this->userProfile->tax_code,
             'state' => $this->state->name,
             'state_until' => $this->state_until,
 
             //Informazioni Creazione, Update e Eliminazione
             'created_at' => $this->created_at,
             'last_updated' => $this->updated_at,
-
-            //Informazioni Indirizzo
-            'address' => (new AddressResource($this->address))->toArray($request),
         ];
+
+        return array_merge($data, $address);
     }
 }

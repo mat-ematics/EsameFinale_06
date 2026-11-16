@@ -6,23 +6,30 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rules\RequiredIf;
 use Illuminate\Validation\Rules\Unique;
-use Throwable;
 
-use function Laravel\Prompts\error;
-
+/**
+ * Funzioni statiche Helper
+ */
 class AppHelpers {
 
+    /**
+     * Cambia le regole delle richieste passate eliminando i 'required'
+     *
+     * @param array $rules Le regole
+     * @param integer|string|null|null $ignoreId L'ID delle entità da ignorare per le regole passate
+     * @param array $keepRequired I campi da mantenere invariati
+     * @return array Il nuovo array di regole
+     */
     public static function updateRequestRules(
         array $rules,
         int|string|null $ignoreId = null,
         array $keepRequired = [],
     ) : array
     {
+        //Ritorna array --> per ogni regola passata
         return Arr::map($rules, function ($ruleset, $key) use ($ignoreId, $keepRequired) {
 
             // I campi in $keepRequired mantengono il loro ruleset invariato
@@ -30,17 +37,21 @@ class AppHelpers {
                 return $ruleset;
             }
 
-            // Oggetto Rule singolo non incapsulato in un array
+            // Oggetto 'Rule' singolo non incapsulato in un array
             if ($ruleset instanceof Unique) {
+                //Mantieni unique, ignorando l'ID in $ignoreId se presente
                 return $ignoreId !== null ? $ruleset->ignore($ignoreId) : $ruleset;
             }
 
+            // Se le regole sono di tipo array
             if (is_array($ruleset)) {
+                //Filtra i 'required' ma NON i 'required_if'
                 $ruleset = array_values(array_filter(
                     $ruleset, 
                     fn ($r) => $r !== 'required' && !($r instanceof RequiredIf)
                 ));
 
+                //Se presente $ignoreId, ignora l'ID passato nelle regole 'Unique'
                 if ($ignoreId !== null) {
                     foreach ($ruleset as $rule) {
                         if ($rule instanceof Unique) {
@@ -49,44 +60,60 @@ class AppHelpers {
                     }
                 }
 
+                //Ritorna regole modificate
                 return $ruleset;
             }
 
+            //Se le regole sono in forma stringa
             if (is_string($ruleset)) {
-                return implode('|', array_filter(explode('|', $ruleset), fn ($r) => $r !== 'required'));
+                //Separa stringa e rimuove 'required' 
+                return array_filter(explode('|', $ruleset), fn ($r) => $r !== 'required');
             }
 
+            //Ritorna regole invariate di default
             return $ruleset;
         });
     }
 
+    /**
+     * Genera un sale casuale esadecimale
+     *
+     * @return string Il sale generato
+     */
     public static function generateSalt() : string
     {
+        //Genera byte randomici e converte in esadecimale
         return bin2hex(random_bytes(32));
     }
 
-    public static function customHash (#[\SensitiveParameter] string $string, string $salt = '') : string
-    {
-        $combined = hash('sha256', $salt . $string);
-        return Hash::make($combined);
-    }
-
-    public static function checkHash(#[\SensitiveParameter] string $string, string $hash, string $salt = '') : bool
-    {
-        return Hash::check($salt . $string, $hash);
-    }
-
+    /**
+     * Estrae il codice di stato da un Throwable e lo ritorna se rientra nei codici di stato HTTP, 500 altrimenti
+     *
+     * @param \Throwable $th
+     * @return integer Lo stato se tra 100 e 600, 500 di default
+     */
     public static function safeHttpStatus(\Throwable $th) : int 
     {
+        //Estrai il codice di stato
         $code = (int) $th->getCode();
+        //Ritorna lo stato se tra 100 (incluso) e 600 (escluso), altrimenti 500
         return ($code >= 100 && $code < 600) ? $code : 500;
     }
 
+    /**
+     * Formatta una risposta di tipo JSON con il messaggio, lo stato e i dati passati
+     *
+     * @param string $message Il messaggio principale da visualizzare, ineriti nel campo 'message' oppure 'error' se lo stato è di errore
+     * @param integer $status Lo stato della risposta. Se il codice è di errore (tra 400 e 599) il messaggio passato è inserito in un campo 'error'
+     * @param mixed $extra (OPZIONALE) I dati extra, inseriti all'interno del campo 'data' 
+     * @return \Illuminate\Http\JsonResponse
+     */
     public static function jsonResponse(string $message, int $status = 200, mixed $extra = []) : \Illuminate\Http\JsonResponse
     {
         //controlla se ha extra passati
         $hasData = func_num_args() >= 3;
 
+        //Se $extra non è array converti in array
         if (!is_array($extra)) {
             try {
                 $extra = Arr::from($extra);
@@ -95,28 +122,28 @@ class AppHelpers {
             }
         }
 
+        //Inserisce il messaggio passato in 'error' oppure 'message' in base a $status
         $msg = ($status >= 400 && $status < 600) 
             ? ['error' => $message]
             : ['message' => $message];
 
+        //Inserisce $extra nel campo 'data'
         $extraArr = $hasData ? ['data' => $extra] : [];
 
+        //Crea l'oggetto JSON risposta e unisci i tre campi
         return response()->json(array_merge($msg, $extraArr), $status);
     }
 
+    /**
+     * Ritorna una risposta JSON di 'operazione non autorizzata' (403 Not Authorized) con il messaggio e i dati passati
+     *
+     * @param string $message Il messaggio principale inseriti nel campo 'error'
+     * @param mixed $extra I dati extra inseriti nel campo 'data'
+     * @return \Illuminate\Http\JsonResponse
+     */
     public static function jsonResponseForbidden(string $message = "You aren't authorized to do this!", mixed $extra = []) : \Illuminate\Http\JsonResponse
     {
         return static::jsonResponse($message, 403, $extra);
-    }
-
-    public static function timestampFromDateTime(string $datetime) : int
-    {
-        return Carbon::parse($datetime)->timestamp;
-    }
-
-    public static function carbonFromTimestamp(int $timestamp) : Carbon
-    {
-        return Carbon::createFromTimestamp($timestamp);
     }
 
     public static function isInFutureAfter(Carbon|int|string $currTime, int|string $duration) : bool
@@ -136,16 +163,6 @@ class AppHelpers {
         }
 
         return $time->isFuture();
-    }
-
-    public static function getBaseNameFromPath(string $path) : string
-    {
-        return pathinfo($path, PATHINFO_BASENAME);
-    }
-
-    public static function getDirNameFromPath(string $path) : string
-    {
-        return pathinfo($path, PATHINFO_DIRNAME);
     }
 
     public static function fileHash(string $filepath) : string
