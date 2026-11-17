@@ -4,7 +4,7 @@ namespace App\Models\Media;
 
 use App\Models\File\File;
 use App\Models\File\Fileable;
-use App\Traits\Traits\FileableTrait;
+use App\Traits\FileableTrait;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

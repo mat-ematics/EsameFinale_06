@@ -3,3 +3,13 @@
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
     gap: 1rem;
 }
+
+.result-card { flex: none; width: 11rem; }
+.result-text { min-width: 0; }
+
+mark {
+    padding: 0 .15em;
+    border-radius: 2px;
+    background: rgba(255, 0, 102, .35);
+    color: inherit;
+}

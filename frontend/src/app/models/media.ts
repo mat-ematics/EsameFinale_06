@@ -38,3 +38,18 @@ export const mediaSectionLink = (type: MediaType) => ['/', ROUTE_SEGMENT[type]];
 export const mediaLink = (item: Pick<MediaSummary, 'type' | 'id'>) => ['/', ROUTE_SEGMENT[item.type], item.id];
 /** Film 1 and series 1 share an id: lists need a key that includes the type */
 export const mediaTrackKey = (item: Pick<MediaSummary, 'type' | 'id'>) => `${item.type}-${item.id}`;
+
+export type MatchField = 'title' | 'description' | 'genre' | 'director' | 'cast' | 'year' | 'duration' | 'episodes';
+
+export interface SearchResult extends MediaSummary {
+  score: number;
+  /** Where the text was found, most important first */
+  matched: MatchField[];
+  /** The part of the description around the match */
+  snippet: string | null;
+}
+
+export const MATCH_LABEL: Record<MatchField, string> = {
+  title: 'Title', description: 'Description', genre: 'Genre', director: 'Director',
+  cast: 'Cast', year: 'Year', duration: 'Duration', episodes: 'Episodes',
+};

@@ -92,11 +92,11 @@ export class NavbarComponent {
     if (!this.host.nativeElement.contains(event.target as Node)) this.openDropdown.set(null);
   }
 
-  protected submitSearch() {
-    const q = this.searchForm.controls.q.value.trim();
-    if (!q) return;
-    this.router.navigate(['/search'], { queryParams: { q } });   // TODO: the results page will call the API
-  }
+    protected submitSearch() {
+        const q = this.searchForm.controls.q.value.trim().replace(/\s+/g, ' ');
+        if (q.length < 2) return;
+        this.router.navigate(['/search'], { queryParams: { q } });
+    }
 
   protected logout() {
     this.closeAll();

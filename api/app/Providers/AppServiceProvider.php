@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Authorization\Role;
+use App\Models\Media\Episode;
+use App\Models\Media\Film;
+use App\Models\Media\TvSeries;
 use App\Models\User\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -35,9 +38,9 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Relation::enforceMorphMap([
-            'film' => 'App/Models/Media/Film',
-            'tvSeries' => 'App/Models/Media/TvSeries',
-            'episode' => 'App/Models/Media/Episode',
+            'films' => Film::class,
+            'tv_series' => TvSeries::class,
+            'episodes' => Episode::class,
         ]);
 
 

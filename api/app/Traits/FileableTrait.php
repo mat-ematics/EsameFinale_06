@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Traits\Traits;
+namespace App\Traits;
 
 use App\Enums\FileRoleEnum;
 use App\Helpers\AppHelpers;

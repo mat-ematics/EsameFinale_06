@@ -14,6 +14,7 @@ use App\Http\Controllers\api\v1\Location\ItalianRegionController;
 use App\Http\Controllers\api\v1\Media\CategoryController;
 use App\Http\Controllers\api\v1\Media\EpisodeController;
 use App\Http\Controllers\api\v1\Media\FilmController;
+use App\Http\Controllers\api\v1\Media\MediaSearchController;
 use App\Http\Controllers\api\v1\Media\TvSeriesController;
 use App\Http\Controllers\api\v1\User\StateController;
 use App\Http\Controllers\api\v1\User\UserController;
@@ -212,6 +213,10 @@ Route::prefix('v1')->group(function () {
             //LOGOUT FORZATO
             Route::post('/{userId}/force-logout', [AuthController::class, 'forceLogout']);
         });
+
+        /* ---- RICERCA ---- */
+
+        Route::get('/search', [MediaSearchController::class, 'index'])->middleware('throttle:60,1');
 
         /* ---- CATEGORIE ---- */
 

@@ -10,17 +10,65 @@
     }
   </div>
 
-  @if (items(); as list) {
-    @if (list.length) {
-      <ul class="grid list-unstyled m-0 p-0">
-        @for (item of list; track key(item); let i = $index) {
-          <li><app-media-card [item]="item" [priority]="i < 4" /></li>
-        }
-      </ul>
+  @if (isSearch()) {
+
+    <!-- ===== Search results: best matches first ===== -->
+    @if (searchState(); as state) {
+      @if (state.error) {
+        <div class="alert alert-danger" role="alert">{{ state.error }}</div>
+      } @else if (state.results.length) {
+        <p class="text-muted">
+          {{ state.results.length }} result{{ state.results.length === 1 ? '' : 's' }}, best matches first
+        </p>
+
+        <ul class="list-unstyled m-0 p-0 d-flex flex-column gap-3">
+          @for (r of state.results; track key(r); let i = $index) {
+            <li class="result d-flex gap-3">
+              <app-media-card class="result-card" [item]="r" [priority]="i < 3" />
+
+              <div class="result-text">
+                <a class="h6 text-reset text-decoration-none" [routerLink]="link(r)">{{ r.title }}</a>
+                <small class="text-muted"> ({{ r.year }}) · {{ r.type === 'film' ? 'Film' : 'TV series' }}</small>
+
+                <div class="d-flex flex-wrap gap-1 my-1">
+                  @for (field of r.matched; track field) {
+                    <span class="badge text-bg-secondary">{{ matchLabel[field] }}</span>
+                  }
+                </div>
+
+                @if (r.snippet) {
+                  <p class="mb-0 small text-muted">
+                    @for (part of highlight(r.snippet); track $index) {
+                      @if (part.hit) { <mark>{{ part.text }}</mark> } @else { {{ part.text }} }
+                    }
+                  </p>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="text-muted">No results found. Try a different word, an actor, a genre or a year.</p>
+      }
     } @else {
-      <p class="text-muted">{{ q() ? 'No results found.' : 'Nothing here yet.' }}</p>
+      <p class="text-muted">Searching…</p>
     }
+
   } @else {
-    <p class="text-muted">Loading…</p>
+
+    <!-- ===== Browsing ===== -->
+    @if (items(); as list) {
+      @if (list.length) {
+        <ul class="grid list-unstyled m-0 p-0">
+          @for (item of list; track key(item); let i = $index) {
+            <li><app-media-card [item]="item" [priority]="i < 4" /></li>
+          }
+        </ul>
+      } @else {
+        <p class="text-muted">Nothing here yet.</p>
+      }
+    } @else {
+      <p class="text-muted">Loading…</p>
+    }
   }
 </main>
