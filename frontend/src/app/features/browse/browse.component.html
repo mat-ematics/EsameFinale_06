@@ -3,6 +3,6 @@
     <app-hero-carousel [slides]="featured()" />
   </section>
 
-  <app-media-row heading="Films" subheading="New releases" [headingLink]="filmsLink" [items]="films()" />
-  <app-media-row heading="TV Series" subheading="New releases" [headingLink]="seriesLink" [items]="series()" />
+  <app-media-row [crumbs]="filmsCrumbs" [add]="filmsAdd" [items]="films()" />
+  <app-media-row [crumbs]="seriesCrumbs" [add]="seriesAdd" [items]="series()" />
 </main>

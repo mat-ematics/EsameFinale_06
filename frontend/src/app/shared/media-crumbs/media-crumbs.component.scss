@@ -1,0 +1,12 @@
+:host {
+    display: block;
+}
+
+.breadcrumb {
+    --bs-breadcrumb-divider-color: #fff;
+    --bs-breadcrumb-item-active-color: var(--bs-body-color);
+
+    a:hover {
+        text-decoration: underline !important;
+    }
+}

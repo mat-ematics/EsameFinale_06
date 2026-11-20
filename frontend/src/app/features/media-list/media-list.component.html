@@ -1,18 +1,9 @@
 <main class="container-fluid px-4 py-4 min-vh-100">
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
-    <h1 class="h3 mb-0">{{ title() }}</h1>
-
-    <!-- Prepared for the admin CRUD -->
-    @if (session.isAdmin() && type(); as t) {
-      <button type="button" class="btn btn-outline-warning btn-sm" disabled>
-        <i class="bi bi-plus-circle"></i> Add {{ t === 'film' ? 'film' : 'TV series' }}
-      </button>
-    }
-  </div>
 
   @if (isSearch()) {
 
-    <!-- ===== Search results: best matches first ===== -->
+    <h1 class="h3 mb-4">{{ title() }}</h1>
+
     @if (searchState(); as state) {
       @if (state.error) {
         <div class="alert alert-danger" role="alert">{{ state.error }}</div>
@@ -53,10 +44,17 @@
     } @else {
       <p class="text-muted">Searching…</p>
     }
+  } @else if (unknown()) {
+
+  <h1 class="h3">Genre not found</h1>
+  <p class="text-muted">There is no genre with this name.</p>
 
   } @else {
 
-    <!-- ===== Browsing ===== -->
+    <!-- "See all": every title of a type and genre -->
+    <h1 class="visually-hidden">{{ title() }}</h1>
+    <app-media-crumbs class="mb-3" [crumbs]="crumbs()" [add]="addTarget()" />
+
     @if (items(); as list) {
       @if (list.length) {
         <ul class="grid list-unstyled m-0 p-0">

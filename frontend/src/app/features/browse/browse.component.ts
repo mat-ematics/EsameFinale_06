@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { HeroCarouselComponent } from '../../shared/hero-carousel/hero-carousel.component';
 import { MediaRowComponent } from '../../shared/media-row/media-row.component';
 import { MediaCatalogService } from '../../core/media-catalog.service';
-import { MediaSummary, mediaSectionLink } from '../../models/media';
+import { AddTarget, Crumb, MediaSummary, typeCrumb } from '../../models/media';
 
 @Component({
   selector: 'app-browse',
@@ -18,6 +18,8 @@ export class BrowseComponent {
   protected readonly films = toSignal(this.catalog.latest('film'), { initialValue: [] as MediaSummary[] });
   protected readonly series = toSignal(this.catalog.latest('tv-series'), { initialValue: [] as MediaSummary[] });
 
-  protected readonly filmsLink = mediaSectionLink('film');
-  protected readonly seriesLink = mediaSectionLink('tv-series');
+  protected readonly filmsCrumbs: Crumb[] = [typeCrumb('film'), { label: 'New releases' }];
+  protected readonly seriesCrumbs: Crumb[] = [typeCrumb('tv-series'), { label: 'New releases' }];
+  protected readonly filmsAdd: AddTarget = { type: 'film' };
+  protected readonly seriesAdd: AddTarget = { type: 'tv-series' };
 }

@@ -85,8 +85,7 @@
     }
   </main>
 
-  <app-media-row [heading]="relatedHeading()" [subheading]="m.categories[0]"
-                 [headingLink]="relatedLink()" [items]="related()" />
+  <app-media-row [crumbs]="relatedCrumbs()" [items]="related()" />
 
 } @else if (media() === null) {
   <main class="container py-5 min-vh-100">

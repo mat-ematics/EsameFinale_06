@@ -4,7 +4,7 @@ import { of, switchMap } from 'rxjs';
 import { MediaRowComponent } from '../../shared/media-row/media-row.component';
 import { MediaCatalogService } from '../../core/media-catalog.service';
 import { SessionService } from '../../core/session.service';
-import { Episode, MEDIA_LABEL, MediaSummary, mediaSectionLink } from '../../models/media';
+import { Crumb, Episode, MediaSummary, genreCrumb, typeCrumb } from '../../models/media';
 import { MediaType } from '../../models/media';
 
 @Component({
@@ -59,8 +59,12 @@ export class MediaDetailComponent {
     ].filter(row => !!row.value);
   });
 
-  protected readonly relatedHeading = computed(() => MEDIA_LABEL[this.type()]);
-  protected readonly relatedLink = computed(() => mediaSectionLink(this.type()));
+    protected readonly relatedCrumbs = computed<Crumb[]>(() => {
+        const m = this.media();
+        if (!m) return [];
+        const genre = m.categories[0];
+    return genre ? [typeCrumb(m.type), genreCrumb(m.type, genre)] : [typeCrumb(m.type)];
+    });
 
   /* --------- Seasons (the choice resets when another title opens) --------- */
   private readonly seasonChoice = signal({ id: '', season: 1 });

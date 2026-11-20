@@ -53,3 +53,41 @@ export const MATCH_LABEL: Record<MatchField, string> = {
   title: 'Title', description: 'Description', genre: 'Genre', director: 'Director',
   cast: 'Cast', year: 'Year', duration: 'Duration', episodes: 'Episodes',
 };
+
+/** One step of a breadcrumb. Without a link it is plain text (the current place) */
+export interface Crumb {
+  label: string;
+  link?: string | any[];
+}
+
+/** Where an "Add" button leads and what it prefills */
+export interface AddTarget {
+  type: MediaType;
+  genre?: string;
+}
+
+export const typeCrumb = (type: MediaType): Crumb =>
+  ({ label: MEDIA_LABEL[type], link: mediaSectionLink(type) });
+
+/** URL form of a genre: "Sci-Fi" -> "sci-fi", "Science Fiction" -> "science-fiction" */
+export const genreSlug = (name: string): string =>
+  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')      // accents: "Fantascienza", "Azione"…
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/^-+|-+$/g, '');
+
+/** Case- and accent-insensitive: "Animation", "animation" and "ANIMATION" are the same genre */
+export const sameGenre = (a: string, b: string): boolean => genreSlug(a) === genreSlug(b);
+
+/** A genre across both types: /genre/sci-fi */
+export const genreLink = (genre: string) => ['/genre', genreSlug(genre)];
+
+/** The label keeps the real name, the link uses the slug */
+export const genreCrumb = (type: MediaType, genre: string): Crumb =>
+  ({ label: genre, link: ['/', ROUTE_SEGMENT[type], 'genre', genreSlug(genre)] });
+
+/** The future "Insert film" page: /admin/films/new?genre=horror */
+export const mediaAddLink = (target: AddTarget) => ({
+  commands: ['/admin', ROUTE_SEGMENT[target.type], 'new'],
+  queryParams: target.genre ? { genre: genreSlug(target.genre) } : {},
+});

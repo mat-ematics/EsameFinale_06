@@ -1,10 +1,5 @@
 :host { display: block; }
 
-.breadcrumb {
-    --bs-breadcrumb-divider-color: #fff;                         // was index.scss
-    --bs-breadcrumb-item-active-color: var(--bs-body-color);
-}
-
 // How many cards are visible: the fraction leaves a peek of the next one
 .carousel {
     --cards: 1.25;

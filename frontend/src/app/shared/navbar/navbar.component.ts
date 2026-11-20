@@ -6,6 +6,7 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { SessionService } from '../../core/session.service';
 import { MediaCatalogService } from '../../core/media-catalog.service.js';
+import { genreLink } from '../../models/media.js';
 
 interface NavItem {
   label: string;
@@ -54,13 +55,13 @@ export class NavbarComponent {
       },
       {
         label: 'Genre', access: 'member',
-        children: this.categories().map(name => ({ label: name, link: ['/genre', name.toLowerCase()] })),
+        children: this.categories().map(name => ({ label: name, link: genreLink(name) })),
       },
       {
         label: 'Manage', access: 'admin',
         children: [
-          { label: 'Add film', disabled: true },
-          { label: 'Add TV series', disabled: true },
+          { label: 'Add film', link: '/admin/films/new' },
+          { label: 'Add TV series', link: '/admin/tv-series/new' },
           { label: 'Categories', disabled: true },
           { label: 'Users', disabled: true },
         ],

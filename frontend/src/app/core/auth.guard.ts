@@ -1,6 +1,7 @@
 import { inject } from "@angular/core";
 import { CanActivateFn, Router } from "@angular/router";
 import { AuthService } from "./auth.service.js";
+import { SessionService } from "./session.service.js";
 
 /**
  * Controlla se l'utente è loggato prima di procedere con la richiesta, e riporta alla pagina di login se non lo è
@@ -14,3 +15,6 @@ export const authGuard: CanActivateFn = () => {
 
 export const guestGuard: CanActivateFn = () =>
     inject(AuthService).isLoggedIn() ? inject(Router).createUrlTree(['/browse']) : true;
+
+export const adminGuard: CanActivateFn = () =>
+  inject(SessionService).isAdmin() ? true : inject(Router).createUrlTree(['/browse']);

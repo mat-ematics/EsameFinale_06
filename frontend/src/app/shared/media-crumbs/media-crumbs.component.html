@@ -1,0 +1,23 @@
+<div class="d-flex align-items-center gap-3 mb-2">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb m-0">
+            @for (crumb of crumbs(); track $index; let first = $first; let last = $last) {
+                <li class="breadcrumb-item" [class.color-brand]="first" [class.fw-bold]="first"
+                    [class.active]="last && !crumb.link" [attr.aria-current]="last && !crumb.link ? 'page' : null">
+                @if (crumb.link) {
+                    <a [routerLink]="crumb.link" class="text-reset text-decoration-none">{{ crumb.label }}</a>
+                } @else {
+                    {{ crumb.label }}
+                }
+                </li>
+            }
+        </ol>
+    </nav>
+
+    @if (session.isAdmin() && addLink(); as link) {
+        <a [routerLink]="link.commands" [queryParams]="link.queryParams" class="btn btn-outline-warning btn-sm"
+            [title]="addLabel()" [attr.aria-label]="addLabel()">
+          <i class="bi bi-plus-circle"></i> Add
+        </a>
+    }
+</div>

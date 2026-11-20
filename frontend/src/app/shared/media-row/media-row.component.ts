@@ -1,23 +1,25 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, input, signal, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, signal, viewChild } from '@angular/core';
 import { MediaCardComponent } from '../media-card/media-card.component';
-import { MediaSummary, mediaTrackKey } from '../../models/media';
+import { AddTarget, Crumb, MediaSummary, mediaTrackKey } from '../../models/media';
+import { SessionService } from '../../core/session.service.js';
+import { MediaCrumbsComponent } from '../media-crumbs/media-crumbs.component';
 
 @Component({
   selector: 'app-media-row',
-  imports: [RouterLink, MediaCardComponent],
+  imports: [ MediaCardComponent, MediaCrumbsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './media-row.component.html',
   styleUrl: './media-row.component.scss',
 })
 export class MediaRowComponent {
   readonly items = input.required<MediaSummary[]>();
-  readonly heading = input.required<string>();
-  readonly subheading = input<string>();
+  readonly crumbs = input.required<Crumb[]>();
+  readonly add = input<AddTarget | null>(null);
   readonly headingLink = input<string | any[]>();
   /** Fraction of the visible width scrolled by each arrow click */
   readonly step = input(0.8);
 
+  private readonly session = inject(SessionService);
   private readonly viewport = viewChild<ElementRef<HTMLElement>>('viewport');
   private readonly track = viewChild<ElementRef<HTMLElement>>('track');
 
@@ -26,6 +28,11 @@ export class MediaRowComponent {
   /** Arrows appear only when there is something to scroll */
   protected readonly scrollable = computed(() => !(this.atStart() && this.atEnd()));
   protected readonly key = mediaTrackKey;
+
+  protected readonly label = computed(() => this.crumbs().map(c => c.label).join(' - '));
+  /** Empty rows stay visible for admins: they are the place to add the first title */
+  protected readonly visible = computed(() => 
+    this.items().length > 0 || (!!this.add() && this.session.isAdmin()));
 
   constructor() {
     // Re-measure when the row or its content changes size (resize, items loaded)

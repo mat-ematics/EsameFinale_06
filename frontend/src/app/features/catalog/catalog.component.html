@@ -1,0 +1,26 @@
+@if (unknownGenre()) {
+  <main class="container py-5 min-vh-100">
+    <h1 class="h3">Genre not found</h1>
+    <p class="text-muted">There is no genre with this name.</p>
+  </main>
+} @else {
+  <main>
+    <h1 class="visually-hidden">{{ title() }}</h1>
+
+    <section class="container-fluid px-4 mb-4">
+      <app-hero-carousel [slides]="slides()" />
+    </section>
+
+    @if (sections(); as list) {
+      @for (section of list; track $index) {
+        <app-media-row [crumbs]="section.crumbs" [add]="section.add" [items]="section.items" />
+      }
+
+      @if (isEmpty() && !session.isAdmin()) {
+        <p class="container-fluid px-4 text-muted">Nothing here yet.</p>
+      }
+    } @else {
+      <p class="container-fluid px-4 text-muted">Loading…</p>
+    }
+  </main>
+}

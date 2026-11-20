@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { MediaDetail, MediaSummary, MediaType } from '../models/media';
+import { map, Observable, of } from 'rxjs';
+import { MediaDetail, MediaSummary, MediaType, sameGenre } from '../models/media';
 
 /**
  * MOCK DATA. Replace the bodies with ApiService calls (/films, /tv-series, /categories)
@@ -67,26 +67,38 @@ const source = (type: MediaType) => (type === 'film' ? FILMS : SERIES);
 @Injectable({ providedIn: 'root' })
 export class MediaCatalogService {
 
-  featured(): Observable<MediaSummary[]> {
-    return of([FILMS[0], SERIES[0], FILMS[1], SERIES[1]].map(m => ({
-      ...toSummary(m),
-      image: m === FILMS[0] ? LOCAL_IMAGE : placeholder(1280, 400, m.title),
+  private filtered(filter: MediaFilter): MediaDetail[] {
+    const q = filter.q?.trim().toLowerCase();
+    const category = filter.category;
+    const pool = filter.type ? source(filter.type) : [...FILMS, ...SERIES];
+
+    return pool.filter(m => 
+        (!category || m.categories.some(c => sameGenre(c, category)))
+        && (!q || m.title.toLowerCase().includes(q)));
+  }
+
+  /** The real name of a genre from its URL form, ignoring case. null = no such genre */
+    genreName(slug: string): Observable<string | null> {
+    return this.categories().pipe(map(names => names.find(name => sameGenre(name, slug)) ?? null));
+    }
+
+  list(filter: MediaFilter): Observable<MediaSummary[]> {
+    return of(this.filtered(filter).map(toSummary));
+  }
+
+  featured(filter: MediaFilter = {}): Observable<MediaSummary[]> {
+    const pool = filter.type || filter.category
+        ? this.filtered(filter).slice(0, 4)
+        : [FILMS[0], SERIES[0], FILMS[1], SERIES[1]];
+
+    return of(pool.map(m => ({
+        ...toSummary(m),
+        image: m === FILMS[0] ? LOCAL_IMAGE : placeholder(1280, 400, m.title),
     })));
   }
 
   latest(type: MediaType): Observable<MediaSummary[]> {
     return of(source(type).slice(0, 10).map(toSummary));
-  }
-
-  list(filter: MediaFilter): Observable<MediaSummary[]> {
-    const q = filter.q?.trim().toLowerCase();
-    const category = filter.category?.trim().toLowerCase();
-    const pool = filter.type ? source(filter.type) : [...FILMS, ...SERIES];
-
-    return of(pool
-      .filter(m => (!category || m.categories.map(c => c.toLowerCase()).includes(category))
-                && (!q || m.title.toLowerCase().includes(q)))
-      .map(toSummary));
   }
 
   /** null = not found */
