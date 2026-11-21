@@ -22,7 +22,7 @@ return new class extends Migration
                 $table->string('directors');
                 $table->string('actors');
                 $table->unsignedSmallInteger('start_year');
-                $table->unsignedSmallInteger('end_year');
+                $table->unsignedSmallInteger('end_year')->nullable();
                 $table->timestamps();
                 $table->softDeletes();
             });

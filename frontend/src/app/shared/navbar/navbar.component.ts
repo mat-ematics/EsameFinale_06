@@ -6,7 +6,7 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth.service';
 import { SessionService } from '../../core/session.service';
 import { MediaCatalogService } from '../../core/media-catalog.service.js';
-import { genreLink } from '../../models/media.js';
+import { Category, genreLink } from '../../models/media.js';
 
 interface NavItem {
   label: string;
@@ -40,7 +40,7 @@ export class NavbarComponent {
   protected readonly openDropdown = signal<string | null>(null);
   protected readonly searchForm = inject(FormBuilder).nonNullable.group({ q: [''] });
 
-  private readonly categories = toSignal(this.catalog.categories(), { initialValue: [] as string[] });
+  private readonly categories = toSignal(this.catalog.categories(), { initialValue: [] as Category[] });
 
   /** The menu for the current user */
   protected readonly menu = computed<NavItem[]>(() => {
@@ -55,7 +55,7 @@ export class NavbarComponent {
       },
       {
         label: 'Genre', access: 'member',
-        children: this.categories().map(name => ({ label: name, link: genreLink(name) })),
+        children: this.categories().map(cat => ({ label: cat.label, link: genreLink(cat) })),
       },
       {
         label: 'Manage', access: 'admin',

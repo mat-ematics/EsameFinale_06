@@ -4,4 +4,5 @@
   <img [ngSrc]="item().image" alt="" fill [priority]="priority()"
        sizes="(max-width: 576px) 80vw, (max-width: 768px) 45vw, (max-width: 1200px) 30vw, 18vw">
   <span class="title">{{ item().title }} <small>({{ item().year }})</small></span>
+  @if (item().deleted) { <span class="badge text-bg-danger position-absolute top-0 start-0 m-2">Deleted</span> }
 </a>

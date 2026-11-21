@@ -41,7 +41,7 @@ class TvSeries extends Model
 
     public function files() : MorphToMany
     {
-        return $this->morphToMany(File::class, File::getMorphName())->using(Fileable::class);
+        return $this->morphToMany(File::class, File::getMorphName())->using(Fileable::class)->withPivot('role');;
     }
 
     /* --------- METODI ---------*/
@@ -65,17 +65,14 @@ class TvSeries extends Model
         return $withTrashed ? $this->episodes()->withTrashed()->get() : $this->episodes;
     }
 
-    public function getEpisodesWithFilters(?int $season, bool $withTrashed = false) 
+    public function getEpisodesWithFilters(?int $season = null, bool $withTrashed = false): Collection
     {
-        $query = $withTrashed ? static::withTrashed() : static::query();
+        $query = $withTrashed ? $this->episodes()->withTrashed() : $this->episodes();
 
-        if (!empty($season) || $season <= 0) {
-            $query->whereHas('episodes', function ($q) use ($season) {
-                $q->where('season_number', $season);
-            });
-        }
-
-        return $query->get();
+        return $query->with('files')
+            ->when($season, fn ($q, $s) => $q->where('season_number', $s))
+            ->orderBy('season_number')->orderBy('episode_number')
+            ->get();
     }
 
     /* --------- METODI STATICI ---------*/
@@ -86,29 +83,18 @@ class TvSeries extends Model
     }
 
     public static function getTvSeriesWithFilters(
-        ?string $name = null,
-        ?string $category = null,
-        ?int $year = null,
-        bool $withTrashed = false
-    ) : Collection {
-        $query = $withTrashed ? static::withTrashed() : static::query();
+        ?string $name = null, ?string $category = null, ?int $year = null,
+        bool $withTrashed = false, ?int $limit = null
+    ): Collection {
+        $query = ($withTrashed ? static::withTrashed() : static::query())
+            ->with(['categories', 'files'])
+            ->when($name, fn ($q, $v) => $q->where('name', 'like', '%' . addcslashes($v, '%_\\') . '%'))
+            ->when($category, fn ($q, $v) => $q->whereHas('categories', fn ($c) => $c->where('name', $v)))
+            ->when($year, fn ($q, $v) => $q->where('start_year', '<=', $v)
+                ->where(fn ($e) => $e->whereNull('end_year')->orWhere('end_year', '>=', $v)))
+            ->latest()->orderByDesc('id');
 
-        if (!empty($name)) {
-            $query->where('title', 'like', '%' . $name . '%');
-        }
-
-        if (!empty($category)) {
-            $query->whereHas('categories', function ($q) use ($category) {
-                $q->where('name', 'like', '%' . $category . '%');
-            });
-        }
-
-        if (!empty($year)) {
-            $query->where('start_year', '<=', $year)
-                  ->where('end_year', '>=', $year);
-        }
-
-        return $query->get();
+        return $limit ? $query->limit($limit)->get() : $query->get();
     }
 
     public static function getTvSeries(string $tvSeries, bool $withTrashed = false) : ?self 

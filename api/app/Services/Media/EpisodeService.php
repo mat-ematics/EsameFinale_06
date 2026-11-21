@@ -2,150 +2,80 @@
 
 namespace App\Services\Media;
 
-use App\Events\TvSeriesCountsChanged;
-use App\Http\Resources\Media\Episode\EpisodeCollection;
-use App\Http\Resources\Media\Episode\EpisodeResource;
-use App\Models\File\File;
 use App\Models\Media\Episode;
-use App\Models\Media\TvSeries;
-use App\Services\File\FilesService;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\UploadedFile;
+use App\Services\File\MediaFileService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
-class EpisodeService {
+class EpisodeService
+{
+    private const FIELDS = ['name', 'description', 'season_number', 'episode_number', 'length', 'year'];
 
-    protected FilesService $filesService;
-    
-    /**
-     * Inizializzatore dei Servizi
-     */
-    public function __construct(FilesService $filesService)
+    public function __construct(protected MediaFileService $files, protected MediaPresenter $presenter) {}
+
+    public function getEpisodeInfo(Episode $episode, bool $isAdmin = false): array
     {
-        $this->filesService = $filesService;
+        return $this->presenter->media($episode, $isAdmin);
     }
 
-    /**
-     * Ritorna le informazioni associate all'Episodio passato
-     */
-    public function getEpisodeInfo(Episode $episode, bool $isAdmin = false) : EpisodeResource
+    public function getEpisodeCollectionInfo(iterable $episodes, bool $isAdmin = false): array
     {
-        return new EpisodeResource($episode, $isAdmin);
+        return $this->presenter->collection($episodes, $isAdmin);
     }
 
-    /**
-     * Ritorna le informazioni associate alla Collection o Array di Episodi passata
-     */
-    public function getEpisodeCollectionInfo(Collection|array $episodes, bool $isAdmin = false) : array
+    public function isEpisodeTaken(int $tvSeriesId, int $seasonNumber, int $episodeNumber, ?int $excludedId = null): bool
     {
-        return (new EpisodeCollection($episodes, $isAdmin))->toArray();
+        return Episode::withTrashed()
+            ->where('tv_series_id', $tvSeriesId)
+            ->where('season_number', $seasonNumber)
+            ->where('episode_number', $episodeNumber)
+            ->when($excludedId, fn ($q, $id) => $q->where('id', '!=', $id))
+            ->exists();                         // trashed ones count: the DB unique index does too
     }
 
-    public function isEpisodeTaken(int $tvSeriesId, int $seasonNumber, int $episodeNumber, ?int $excludedId = null) : bool
+    public function createEpisode(int $tvSeriesId, array $data, array $uploads): array
     {
-        $query = Episode::where('tv_series_id', $tvSeriesId)
-                    ->where('season_number', $seasonNumber)
-                    ->where('episode_number', $episodeNumber);
+        $episode = null;
 
-        if ($excludedId) $query->where('id', '!=', $excludedId);
+        try {
+            return DB::transaction(function () use ($tvSeriesId, $data, $uploads, &$episode) {
+                $episode = Episode::create(['tv_series_id' => $tvSeriesId] + Arr::only($data, self::FIELDS));
+                $this->files->storeMany($episode, $uploads);
 
-        return $query->exists();
+                return $this->presenter->media($episode->fresh('files'), true);
+            });
+        } catch (\Throwable $e) {
+            if ($episode) $this->files->purge($this->files->directory($episode));
+            throw $e;
+        }
     }
 
-    /**
-     * @param Collection<int, UploadedFile>|UploadedFile[]|UploadedFile $uploadedFiles
-     */
-    public function createEpisode(int $tvSeriesId, array $data, UploadedFile|Collection|array $uploadedFiles) : Episode
+    public function updateEpisode(Episode $episode, array $data, array $uploads): array
     {
-        return DB::transaction(function () use ($tvSeriesId, $data, $uploadedFiles) {
-            
-            //Creazione Episodio
-            $newEpisode = Episode::create([
-                'tv_series_id' => $tvSeriesId,
-                'name' => $data['name'],
-                'description' => $data['description'] ?? null,
-                'season_number' => $data['season_number'],
-                'episode_number' => $data['episode_number'],
-                'length' => $data['length'],
-                'year' => $data['year'],
-            ]);
+        return DB::transaction(function () use ($episode, $data, $uploads) {
+            $episode->update(Arr::only($data, self::FIELDS));
+            $this->files->storeMany($episode, $uploads);
 
-            //Salvataggio File e linkaggio
-            $meta = $data['files_meta'];
-            $fileModels = $this->filesService->storeOneOrManyFiles($uploadedFiles, $meta, true, $newEpisode);
-
-            return $newEpisode;
+            return $this->presenter->media($episode->fresh('files'), true);
         });
     }
 
-    /**
-     * @param Collection<int, File>|File[]|File|null $uploadedFiles
-     */
-    public function updateEpisode(
-        int $tvSeriesId,
-        Episode $episode,
-        array $data,
-        File|Collection|array|null $files = null
-    ) : EpisodeResource
+    public function deleteEpisode(Episode $episode): void
     {
-        $data = array_filter($data);
-
-        //Filtra i valori nulli
-        $updateData = array_filter(Arr::only($data, [
-            'tv_series_id',
-            'name',
-            'season_number',
-            'episode_number',
-            'length',
-            'year',
-        ]));
-
-        if (array_key_exists('description', $data)) {
-            $updateData['description'] = $data['description']; // puo' essere null - ignorato se non passato
-        }
-
-        //Aggiorna Username e/o password se presenti
-        if (!empty($updateData)) {
-            $episode->update($updateData);
-        }
-
-        if (isset($updateData['tv_series_id']) && $updateData['tv_series_id'] !== $tvSeriesId) {
-            event(new TvSeriesCountsChanged(TvSeries::find($tvSeriesId)));
-            event(new TvSeriesCountsChanged(TvSeries::find($updateData['tv_series_id'])));
-        }
-
-        //Aggiornamento File
-        if (isset($data['files_meta'])) {
-            $meta = array_filter($data['files_meta']);
-            $this->filesService->updateOneOrManyFiles($files, $meta);
-        }
-
-        return $this->getEpisodeInfo($episode, true);
+        $episode->deleteOrFail();
     }
 
-    /**
-     * Elimina l'Episodio Passato
-     */
-    public function deleteEpisode(Episode $episode)
-    {
-        return $episode->deleteOrFail();
-    }
-
-        /**
-     * Recupera un Episodio Eliminato Temporaneamente (Soft Deleted)
-     */
-    public function restoreEpisode(episode $episode)
+    public function restoreEpisode(Episode $episode): array
     {
         $episode->restore();
-        return $this->getEpisodeInfo($episode, true);
+        return $this->presenter->media($episode, true);
     }
 
-    /**
-     * Elimina definitivamente l'Episode Selezionato (Hard Delete)
-     */
-    public function forceDeleteEpisode(episode $episode)
+    public function forceDeleteEpisode(Episode $episode): void
     {
-        return $episode->forceDelete();
+        DB::transaction(function () use ($episode) {
+            $episode->forceDelete();
+            $this->files->deleteAll($episode);
+        });
     }
 }

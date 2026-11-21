@@ -36,14 +36,18 @@ export const routes: Routes = [
             // Admin (placeholders until the real pages exist)
             {
             path: 'admin',
-            canActivateChild: [adminGuard],
-            children: [
-                { path: 'films/new', data: { type: 'film', title: 'Insert film' }, loadComponent: () => import('./features/admin/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent) },
-                { path: 'tv-series/new', data: { type: 'tv-series', title: 'Insert TV series' }, loadComponent: () => import('./features/admin/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent) },
-            ],
+                canActivateChild: [adminGuard],
+                children: [
+                    { path: 'films/new', data: { type: 'film' }, loadComponent: () => import('./features/admin/media-form/media-form.component').then(m => m.MediaFormComponent) },
+                    { path: 'films/:id/edit', data: { type: 'film' }, loadComponent: () => import('./features/admin/media-form/media-form.component').then(m => m.MediaFormComponent) },
+                    { path: 'tv-series/new', data: { type: 'tv-series' }, loadComponent: () => import('./features/admin/media-form/media-form.component').then(m => m.MediaFormComponent) },
+                    { path: 'tv-series/:id/edit', data: { type: 'tv-series' }, loadComponent: () => import('./features/admin/media-form/media-form.component').then(m => m.MediaFormComponent) },
+                ],
             },
+            { path: 'watch/film/:id', data: { type: 'film' }, loadComponent: () => import('./features/watch/watch.component').then(m => m.WatchComponent) },
+            { path: 'watch/tv-series/:id/:episodeId', data: { type: 'tv-series' }, loadComponent: () => import('./features/watch/watch.component').then(m => m.WatchComponent) },
         ],
-        },
+    },
     {
         path: 'profile',
         canActivate: [authGuard],

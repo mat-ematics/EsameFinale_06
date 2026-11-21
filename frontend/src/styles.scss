@@ -58,6 +58,24 @@ input[type="date"] {
     background-color: inherit;
 }
 
+// Section titles
+.form-section {
+    margin-bottom: 1.5rem;
+
+    legend {
+        float: none;                       // Bootstrap floats legends
+        width: 100%;
+        margin-bottom: 1rem;
+        padding-bottom: .5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, .12);
+        font-size: .8rem;
+        font-weight: 600;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var.$brand-color;
+    }
+}
+
 /* --- GLOBAL STYLE CLASSES --- */
 
 /* BRAND */

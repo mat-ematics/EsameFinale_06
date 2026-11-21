@@ -19,6 +19,9 @@ export class MediaRowComponent {
   /** Fraction of the visible width scrolled by each arrow click */
   readonly step = input(0.8);
 
+  /** Number of cards at the start that load with priority (only for a row near the top) */
+    readonly priorityCount = input(0);
+
   private readonly session = inject(SessionService);
   private readonly viewport = viewChild<ElementRef<HTMLElement>>('viewport');
   private readonly track = viewChild<ElementRef<HTMLElement>>('track');

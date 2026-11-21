@@ -2,132 +2,77 @@
 
 namespace App\Services\Media;
 
-use App\Http\Resources\Media\Film\FilmCollection;
-use App\Http\Resources\Media\Film\FilmResource;
-use App\Models\File\File;
+use App\Enums\MediaRoleEnum;
 use App\Models\Media\Film;
-use App\Services\File\FilesService;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\UploadedFile;
+use App\Services\File\MediaFileService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
-class FilmService {
-    
-    protected FilesService $filesService;
-    
-    /**
-     * Inizializzatore dei Servizi
-     */
-    public function __construct(FilesService $filesService)
+class FilmService
+{
+    private const FIELDS = ['name', 'description', 'length', 'directors', 'actors', 'year'];
+
+    public function __construct(protected MediaFileService $files, protected MediaPresenter $presenter) {}
+
+    public function getFilmInfo(Film $film, bool $isAdmin = false): array
     {
-        $this->filesService = $filesService;
+        return $this->presenter->media($film, $isAdmin);
     }
 
-    /**
-     * Ritorna le informazioni associate al Film passato
-     */
-    public function getFilmInfo(Film $film, bool $isAdmin = false) : FilmResource
+    public function getFilmCollectionInfo(iterable $films, bool $isAdmin = false): array
     {
-        return new FilmResource($film, $isAdmin);
+        return $this->presenter->collection($films, $isAdmin);
     }
 
-    public function getFilmCollectionInfo(Collection|array $films, bool $isAdmin = false) : array
+    /** @param array<string, \Illuminate\Http\UploadedFile> $uploads cover, banner?, video */
+    public function createFilm(array $data, array $uploads): array
     {
-        return (new FilmCollection($films, $isAdmin))->toArray();
+        $film = null;
+
+        try {
+            return DB::transaction(function () use ($data, $uploads, &$film) {
+                $film = Film::create(Arr::only($data, self::FIELDS));
+                $film->setCategories($data['categories']);
+                $this->files->storeMany($film, $uploads);
+
+                return $this->presenter->media($film->fresh(['categories', 'files']), true);
+            });
+        } catch (\Throwable $e) {
+            if ($film) $this->files->purge($this->files->directory($film));   // the row rolled back: remove its folder too
+            throw $e;
+        }
     }
 
-    /**
-     * @param Collection<int, UploadedFile>|UploadedFile[]|UploadedFile $uploadedFiles
-     */
-    public function createFilm(array $data, UploadedFile|Collection|array $uploadedFiles) : Film
+    public function updateFilm(Film $film, array $data, array $uploads, bool $removeBanner = false): array
     {
-        return DB::transaction(function () use ($data, $uploadedFiles) {
-            
-            //Creazione Film
-            $newFilm = Film::create([
-                'name' => $data['name'],
-                'description' => $data['description'] ?? null,
-                'length' => $data['length'],
-                'directors' => $data['directors'],
-                'actors' => $data['actors'],
-                'year' => $data['year'],
-            ]);
+        return DB::transaction(function () use ($film, $data, $uploads, $removeBanner) {
+            $film->update(Arr::only($data, self::FIELDS));      // only what was sent; description => null clears it
 
-            //Assegnazione Categoria
-            $newFilm->setCategories($data['categories']);
+            if (array_key_exists('categories', $data)) $film->setCategories($data['categories']);
 
-            //Salvataggio File e Linkaggio
-            $meta = $data['files_meta'];
-            $fileModels = $this->filesService->storeOneOrManyFiles($uploadedFiles, $meta, true, $newFilm);
+            $this->files->storeMany($film, $uploads);
+            if ($removeBanner) $this->files->remove($film, MediaRoleEnum::Banner);
 
-            return $newFilm;
+            return $this->presenter->media($film->fresh(['categories', 'files']), true);
         });
     }
 
-    /**
-     * @param Collection<int, File>|File[]|File|null $uploadedFiles
-     */
-    public function updateFilm(Film $film, array $data, File|Collection|array|null $files = null) : FilmResource
+    public function deleteFilm(Film $film): void
     {
-        $data = array_filter($data);
-
-        //Filtra i valori nulli
-        $updateData = array_filter(Arr::only($data, [
-            'name',
-            'length',
-            'directors',
-            'actors',
-            'year',
-        ]));
-
-        
-        if (array_key_exists('description', $data)) {
-            $updateData['description'] = $data['description']; // puo' essere null - ignorato se non passato
-        }
-
-        //Aggiorna Username e/o password se presenti
-        if (!empty($updateData)) {
-            $film->update($updateData);
-        }
-
-        //Aggiornamento Categorie
-        if (isset($data['categories']) && !empty($data['categories'])) {
-            $film->setCategories($data['categories']);
-        }
-        
-        //Aggiornamento File
-        if (isset($data['files_meta'])) {
-            $meta = array_filter($data['files_meta']);
-            $this->filesService->updateOneOrManyFiles($files, $meta);
-        }
-
-        return $this->getFilmInfo($film, true);
+        $film->deleteOrFail();
     }
 
-    /**
-     * Elimina Il Film Passato
-     */
-    public function deleteFilm(Film $film)
-    {
-        return $film->deleteOrFail();
-    }
-
-    /**
-     * Recupera un Film Eliminato Temporaneamente (Soft Deleted)
-     */
-    public function restoreFilm(Film $film)
+    public function restoreFilm(Film $film): array
     {
         $film->restore();
-        return $this->getFilmInfo($film, true);
+        return $this->presenter->media($film, true);
     }
 
-    /**
-     * Elimina definitivamente il Film Selezionato (Hard Delete)
-     */
-    public function forceDeleteFilm(Film $film)
+    public function forceDeleteFilm(Film $film): void
     {
-        return $film->forceDelete();
+        DB::transaction(function () use ($film) {
+            $film->forceDelete();
+            $this->files->deleteAll($film);
+        });
     }
 }

@@ -1,0 +1,138 @@
+@if (notFound()) {
+  <main class="container py-5 min-vh-100">
+    <h1 class="h3">Not found</h1>
+    <a class="btn btn-outline-light btn-sm" routerLink="/browse">Back to browse</a>
+  </main>
+} @else {
+  <main class="container py-4 min-vh-100">
+    <h1 class="h3 mb-4">{{ editing() ? 'Edit' : 'New' }} {{ label() }}</h1>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="bg-dark p-4 rounded">
+
+      <fieldset class="form-section">
+        <legend>Details</legend>
+
+        <div class="mb-3">
+          <label class="form-label" for="mfName">Name <span class="required-text">*</span></label>
+          <input id="mfName" type="text" class="form-control" formControlName="name" maxlength="255"
+                 [ngClass]="{ 'is-invalid': bad('name') }">
+          <div class="invalid-feedback" [class.is-shown]="bad('name')">{{ error('name') }}</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="mfDesc">Description</label>
+          <textarea id="mfDesc" class="form-control" rows="4" formControlName="description" maxlength="2000"
+                    [ngClass]="{ 'is-invalid': bad('description') }"></textarea>
+          <div class="invalid-feedback" [class.is-shown]="bad('description')">{{ error('description') }}</div>
+        </div>
+
+        <div class="row">
+          <div class="col-12 col-md-4 mb-3">
+            <label class="form-label" for="mfYear">{{ isFilm() ? 'Year' : 'Start year' }} <span class="required-text">*</span></label>
+            <input id="mfYear" type="number" class="form-control" formControlName="year" [min]="1888" [max]="maxYear"
+                   [ngClass]="{ 'is-invalid': bad('year') }">
+            <div class="invalid-feedback" [class.is-shown]="bad('year')">{{ error('year') }}</div>
+          </div>
+
+          @if (isFilm()) {
+            <div class="col-12 col-md-4 mb-3">
+              <label class="form-label" for="mfMinutes">Duration (minutes) <span class="required-text">*</span></label>
+              <input id="mfMinutes" type="number" class="form-control" formControlName="minutes" min="1" max="240"
+                     [ngClass]="{ 'is-invalid': bad('minutes') }">
+              <div class="invalid-feedback" [class.is-shown]="bad('minutes')">{{ error('minutes') }}</div>
+            </div>
+          } @else {
+            <div class="col-12 col-md-4 mb-3">
+              <label class="form-label" for="mfEnd">End year</label>
+              <input id="mfEnd" type="number" class="form-control" formControlName="endYear" [min]="1888" [max]="maxYear"
+                     [ngClass]="{ 'is-invalid': bad('endYear') }">
+              <div class="form-text">Leave empty while it is still running.</div>
+              <div class="invalid-feedback" [class.is-shown]="bad('endYear')">{{ error('endYear') }}</div>
+            </div>
+          }
+        </div>
+
+        <div class="row">
+          <div class="col-12 col-md-6 mb-3">
+            <label class="form-label" for="mfDirectors">Directors <span class="required-text">*</span></label>
+            <input id="mfDirectors" type="text" class="form-control" formControlName="directors" maxlength="255"
+                   [ngClass]="{ 'is-invalid': bad('directors') }">
+            <div class="invalid-feedback" [class.is-shown]="bad('directors')">{{ error('directors') }}</div>
+          </div>
+          <div class="col-12 col-md-6 mb-3">
+            <label class="form-label" for="mfActors">Cast <span class="required-text">*</span></label>
+            <input id="mfActors" type="text" class="form-control" formControlName="actors" maxlength="255"
+                   [ngClass]="{ 'is-invalid': bad('actors') }">
+            <div class="invalid-feedback" [class.is-shown]="bad('actors')">{{ error('actors') }}</div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Genres</legend>
+        <div class="d-flex flex-wrap gap-3">
+          @for (c of categories(); track c.name) {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" [id]="'mfCat-' + c.name"
+                    [checked]="form.controls.categories.value.includes(c.name)" (change)="toggleCategory(c.name)">
+                <label class="form-check-label" [for]="'mfCat-' + c.name">{{ c.label }}</label>
+            </div>
+          }
+        </div>
+        <div class="invalid-feedback" [class.is-shown]="bad('categories')">{{ error('categories') }}</div>
+      </fieldset>
+
+      <fieldset class="form-section">
+        <legend>Files</legend>
+
+        <div class="row">
+          <div class="col-12 col-md-6 mb-3">
+            <label class="form-label" for="mfCover">Cover (card image, 16:9) @if (!editing()) { <span class="required-text">*</span> }</label>
+            @if (coverPreview() ?? existing()?.image; as src) { <img [src]="src" alt="" class="img-fluid rounded mb-2 d-block"> }
+            <input id="mfCover" type="file" class="form-control" accept="image/jpeg,image/png,image/webp"
+                   [ngClass]="{ 'is-invalid': bad('cover') }" (change)="pick('cover', $event)">
+            <div class="invalid-feedback" [class.is-shown]="bad('cover')">{{ error('cover') }}</div>
+          </div>
+
+          <div class="col-12 col-md-6 mb-3">
+            <label class="form-label" for="mfBanner">Banner (hero and backdrop, wide)</label>
+            @if (!removeBanner() && (bannerPreview() ?? existing()?.bannerUrl); as src) { <img [src]="src" alt="" class="img-fluid rounded mb-2 d-block"> }
+            <input id="mfBanner" type="file" class="form-control" accept="image/jpeg,image/png,image/webp"
+                   [ngClass]="{ 'is-invalid': bad('banner') }" (change)="pick('banner', $event)">
+            <div class="form-text">Optional: the cover is used when there is no banner.</div>
+            <div class="invalid-feedback" [class.is-shown]="bad('banner')">{{ error('banner') }}</div>
+            @if (existing()?.bannerUrl && !banner()) {
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" id="mfRemoveBanner"
+                       [checked]="removeBanner()" (change)="removeBanner.set(!removeBanner())">
+                <label class="form-check-label" for="mfRemoveBanner">Remove the current banner</label>
+              </div>
+            }
+          </div>
+        </div>
+
+        @if (isFilm()) {
+          <div class="mb-3">
+            <label class="form-label" for="mfVideo">Video (MP4, up to 50 MB) @if (!editing()) { <span class="required-text">*</span> }</label>
+            @if (editing() && existing()?.videoUrl && !video()) { <div class="form-text mb-1">A video is already uploaded. Choose a file to replace it.</div> }
+            <input id="mfVideo" type="file" class="form-control" accept="video/mp4"
+                   [ngClass]="{ 'is-invalid': bad('video') }" (change)="pick('video', $event)">
+            <div class="invalid-feedback" [class.is-shown]="bad('video')">{{ error('video') }}</div>
+          </div>
+        }
+      </fieldset>
+
+      @if (saving()) {
+        <div class="progress mb-3" role="progressbar" [attr.aria-valuenow]="progress()" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar bg-danger" [style.width.%]="progress()">{{ progress() }}%</div>
+        </div>
+      }
+      @if (formError()) { <div class="alert alert-danger" role="alert">{{ formError() }}</div> }
+
+      <div class="d-flex justify-content-end gap-2">
+        <a class="btn btn-outline-light" [routerLink]="backLink()" [class.disabled]="saving()">Cancel</a>
+        <button type="submit" class="btn btn-danger" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save' }}</button>
+      </div>
+    </form>
+  </main>
+}

@@ -1,0 +1,25 @@
+
+<main class="container-fluid px-4 py-3 min-vh-100">
+    @if (media(); as m) {
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h1 class="h5 mb-0">{{ title() }}</h1>
+        <span class="d-flex gap-2">
+        @if (next(); as n) {
+            <a class="btn btn-brand btn-sm" [routerLink]="['/watch', 'tv-series', m.id, n.id]">Next episode <i class="bi bi-skip-forward-fill"></i></a>
+        }
+        <a class="btn btn-outline-light btn-sm" [routerLink]="back()">Back</a>
+        </span>
+    </div>
+
+    @if (source(); as src) {
+        <video class="w-100 rounded bg-black" controls autoplay playsinline preload="metadata"
+                [src]="src" [attr.poster]="poster()"></video>
+    } @else {
+        <p class="text-muted">This title has no video yet.</p>
+    }
+    } @else if (media() === null) {
+    <p class="text-muted">Not found.</p>
+    } @else {
+    <p class="text-muted">Loading…</p>
+    }
+</main>

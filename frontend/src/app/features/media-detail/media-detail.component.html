@@ -16,10 +16,32 @@
         }
       </dl>
 
-      <div class="actions d-flex flex-column flex-sm-row gap-2 mb-3">
-        <button type="button" class="btn btn-brand" (click)="play()">
-          Play <i class="bi bi-play-circle"></i>
+      @if (m.deleted) {
+        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
+            This title is deleted. Only administrators can see it.
+            <span class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-dark" [disabled]="busy()" (click)="restore()">Restore</button>
+            <button type="button" class="btn btn-sm btn-danger" [disabled]="busy()" (click)="confirmingPermanent.set(true)">Delete permanently</button>
+            </span>
+        </div>
+        }
+
+        <div class="actions d-flex flex-column flex-sm-row gap-2 mb-3">
+        <button type="button" class="btn btn-brand" [disabled]="!canPlay()" (click)="play()">
+            {{ canPlay() ? 'Play' : 'No video yet' }} <i class="bi bi-play-circle"></i>
         </button>
+
+        @if (session.isAdmin() && !m.deleted) {
+            <button type="button" class="btn btn-outline-warning" (click)="edit()">Edit <i class="bi bi-pencil-square"></i></button>
+            @if (!confirmingDelete()) {
+            <button type="button" class="btn btn-outline-warning" (click)="confirmingDelete.set(true)">Delete <i class="bi bi-trash-fill"></i></button>
+            } @else {
+            <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="remove()">Confirm delete</button>
+            <button type="button" class="btn btn-outline-light" (click)="confirmingDelete.set(false)">Cancel</button>
+            }
+        }
+        </div>
+        @if (actionError()) { <div class="alert alert-danger" role="alert">{{ actionError() }}</div> }
 
         <!-- Admin only (UI): the server enforces it too -->
         @if (session.isAdmin()) {
@@ -38,15 +60,14 @@
       </div>
 
       <p class="tos">By pressing Play you accept our <span class="color-brand-dark">Terms of Use</span></p>
-    </div>
 
     @if (m.type === 'tv-series') {
       <section class="episodes" aria-labelledby="episodesTitle">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
           <h2 id="episodesTitle" class="h5 mb-0">Episodes</h2>
           @if (session.isAdmin()) {
-            <button type="button" class="btn btn-outline-warning btn-sm" disabled>
-              <i class="bi bi-plus-circle"></i> Add episode
+            <button type="button" class="btn btn-outline-warning btn-sm" (click)="openEpisodeForm(null)">
+                <i class="bi bi-plus-circle"></i> Add episode
             </button>
           }
         </div>
@@ -61,23 +82,23 @@
 
         <ul class="list-group list-group-flush">
           @for (ep of episodes(); track ep.id) {
-            <li class="list-group-item bg-transparent d-flex align-items-center gap-3">
-              <span class="text-muted">{{ ep.number }}</span>
-              <div class="flex-grow-1">
-                <div class="fw-semibold">{{ ep.title }}</div>
-                <small class="text-muted">{{ ep.durationMinutes }} min</small>
-              </div>
-              <button type="button" class="btn btn-sm btn-outline-light" [attr.aria-label]="'Play ' + ep.title" (click)="playEpisode(ep)">
-                <i class="bi bi-play-fill"></i>
-              </button>
-              @if (session.isAdmin()) {
-                <button type="button" class="btn btn-sm btn-outline-warning" [attr.aria-label]="'Edit ' + ep.title" (click)="editEpisode(ep)">
-                  <i class="bi bi-pencil-square"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-warning" [attr.aria-label]="'Delete ' + ep.title" (click)="removeEpisode(ep)">
-                  <i class="bi bi-trash-fill"></i>
-                </button>
-              }
+            <li class="list-group-item bg-transparent d-flex align-items-center gap-3" [class.opacity-50]="ep.deleted">
+            <span class="text-muted">{{ ep.number }}</span>
+            <div class="flex-grow-1">
+                <div class="fw-semibold">{{ ep.title }} @if (ep.deleted) { <span class="badge text-bg-danger">Deleted</span> }</div>
+                <small class="text-muted">{{ ep.durationMinutes }} min @if (!ep.videoUrl) { · no video }</small>
+            </div>
+            @if (ep.videoUrl && !ep.deleted) {
+                <button type="button" class="btn btn-sm btn-outline-light" [attr.aria-label]="'Play ' + ep.title" (click)="play(ep)"><i class="bi bi-play-fill"></i></button>
+            }
+            @if (session.isAdmin()) {
+                @if (ep.deleted) {
+                <button type="button" class="btn btn-sm btn-outline-warning" [disabled]="busy()" (click)="restoreEpisode(ep)">Restore</button>
+                } @else {
+                <button type="button" class="btn btn-sm btn-outline-warning" [attr.aria-label]="'Edit ' + ep.title" (click)="openEpisodeForm(ep)"><i class="bi bi-pencil-square"></i></button>
+                <button type="button" class="btn btn-sm btn-outline-warning" [attr.aria-label]="'Delete ' + ep.title" [disabled]="busy()" (click)="removeEpisode(ep)"><i class="bi bi-trash-fill"></i></button>
+                }
+            }
             </li>
           }
         </ul>
@@ -86,6 +107,19 @@
   </main>
 
   <app-media-row [crumbs]="relatedCrumbs()" [items]="related()" />
+
+  @if (m.type === 'tv-series') {
+    <app-episode-form [open]="episodeFormOpen()" [seriesId]="m.id" [episode]="episodeBeingEdited()"
+                        [suggestion]="suggestion()" (closed)="episodeFormOpen.set(false)" (saved)="onEpisodeSaved()" />
+    }
+
+    <app-modal title="Delete permanently" [open]="confirmingPermanent()" [dismissible]="!busy()" (closed)="confirmingPermanent.set(false)">
+    <p>This removes the title, all its episodes and every uploaded file. It cannot be undone.</p>
+    <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-light" [disabled]="busy()" (click)="confirmingPermanent.set(false)">Cancel</button>
+        <button type="button" class="btn btn-danger" [disabled]="busy()" (click)="removePermanently()">Delete permanently</button>
+    </div>
+    </app-modal>
 
 } @else if (media() === null) {
   <main class="container py-5 min-vh-100">

@@ -6,8 +6,8 @@
       <div class="carousel">
         <div #viewport class="viewport" (scroll)="update()">
           <ul #track class="track list-unstyled m-0 p-0">
-            @for (item of items(); track key(item)) {
-              <li class="cell"><app-media-card [item]="item" /></li>
+            @for (item of items(); track key(item); let i = $index) {
+                <li class="cell"><app-media-card [item]="item" [priority]="i < priorityCount()" /></li>
             }
           </ul>
         </div>

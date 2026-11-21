@@ -2,141 +2,80 @@
 
 namespace App\Services\Media;
 
-use App\Http\Resources\Media\TvSeries\TvSeriesCollection;
-use App\Http\Resources\Media\TvSeries\TvSeriesResource;
-use App\Models\File\File;
+use App\Enums\MediaRoleEnum;
+use App\Models\Media\Episode;
 use App\Models\Media\TvSeries;
-use App\Services\File\FilesService;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\UploadedFile;
+use App\Services\File\MediaFileService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
-class TvSeriesService {
+class TvSeriesService
+{
+    private const FIELDS = ['name', 'description', 'directors', 'actors', 'start_year', 'end_year'];
 
-    protected FilesService $filesService;
-    
-    /**
-     * Inizializzatore dei Servizi
-     */
-    public function __construct(FilesService $filesService)
+    public function __construct(protected MediaFileService $files, protected MediaPresenter $presenter) {}
+
+    public function getTvSeriesInfo(TvSeries $series, bool $isAdmin = false): array
     {
-        $this->filesService = $filesService;
+        return $this->presenter->media($series, $isAdmin);
     }
 
-    /**
-     * Ritorna le informazioni associate alla Serie TV passata
-     */
-    public function getTvSeriesInfo(TvSeries $tvSeries, bool $isAdmin = false) : TvSeriesResource
+    public function getTvSeriesCollectionInfo(iterable $series, bool $isAdmin = false): array
     {
-        return new TvSeriesResource($tvSeries, $isAdmin);
+        return $this->presenter->collection($series, $isAdmin);
     }
 
-    /**
-     * Ritorna le informazioni associate alla Collection o Array di Serie TV passata
-     */
-    public function getTvSeriesCollectionInfo(Collection|array $tvSeries, bool $isAdmin = false) : array
+    public function createTvSeries(array $data, array $uploads): array
     {
-        return (new TvSeriesCollection($tvSeries, $isAdmin))->toArray();
+        $series = null;
+
+        try {
+            return DB::transaction(function () use ($data, $uploads, &$series) {
+                $series = TvSeries::create(Arr::only($data, self::FIELDS));
+                $series->setCategories($data['categories']);
+                $this->files->storeMany($series, $uploads);
+
+                return $this->presenter->media($series->fresh(['categories', 'files']), true);
+            });
+        } catch (\Throwable $e) {
+            if ($series) $this->files->purge($this->files->directory($series));
+            throw $e;
+        }
     }
 
-    /**
-     * @param Collection<int, UploadedFile>|UploadedFile[]|UploadedFile $uploadedFiles
-     */
-    public function createTvSeries(array $data, UploadedFile|Collection|array $uploadedFiles) : TvSeries
+    public function updateTvSeries(TvSeries $series, array $data, array $uploads, bool $removeBanner = false): array
     {
-        return DB::transaction(function () use ($data, $uploadedFiles) {
-            
-            //Creazione Serie TV
+        return DB::transaction(function () use ($series, $data, $uploads, $removeBanner) {
+            $series->update(Arr::only($data, self::FIELDS));    // end_year => null means "still running"
 
-            $newSeries = TvSeries::create([
-                'name' => $data['name'],
-                'description' => $data['description'] ?? null,
-                'directors' => $data['directors'],
-                'actors' => $data['actors'],
-                'start_year' => $data['start_year'],
-                'end_year' => $data['end_year'] ?? null,
-            ]);
+            if (array_key_exists('categories', $data)) $series->setCategories($data['categories']);
 
-            //Assegnazione Categoria
-            $newSeries->setCategories($data['categories']);
+            $this->files->storeMany($series, $uploads);
+            if ($removeBanner) $this->files->remove($series, MediaRoleEnum::Banner);
 
-            //Salvataggio File e linkaggio
-            $meta = $data['files_meta'];
-            $fileModels = $this->filesService->storeOneOrManyFiles($uploadedFiles, $meta, true, $newSeries);
-
-            return $newSeries;
+            return $this->presenter->media($series->fresh(['categories', 'files']), true);
         });
     }
 
-    /**
-     * @param Collection<int, File>|File[]|File|null $uploadedFiles
-     */
-    public function updateTvSeries(
-        TvSeries $tvSeries,
-        array $data,
-        File|Collection|array|null $files = null
-    ) : TvSeriesResource
+    public function deleteTvSeries(TvSeries $series): void
     {
-
-        //Filtra i valori nulli
-        $updateData = array_filter(Arr::only($data, [
-            'name',
-            'directors',
-            'actors',
-            'start_year',
-        ]));
-
-        
-        if (array_key_exists('description', $data)) {
-            $updateData['description'] = $data['description']; // puo' essere null - ignorato se non passato
-        }
-
-        if (array_key_exists('end_year', $data)) {
-            $updateData['end_year'] = $data['end_year']; // puo' essere null - ignorato se non passato
-        }
-
-        //Aggiorna Username e/o password se presenti
-        if (!empty($updateData)) {
-            $tvSeries->update($updateData);
-        }
-
-        //Aggiornamento Categorie
-        if (isset($data['categories']) && !empty($data['categories'])) {
-            $tvSeries->setCategories($data['categories']);
-        }
-
-        //Aggiornamento File
-        if (isset($data['files_meta'])) {
-            $meta = array_filter($data['files_meta']);
-            $this->filesService->updateOneOrManyFiles($files, $meta);
-        }
-
-        return $this->getTvSeriesInfo($tvSeries, true);
+        $series->deleteOrFail();
     }
 
-    /**
-     * Elimina la Serie TV Passata
-     */
-    public function deleteTvSeries(TvSeries $tvSeries)
+    public function restoreTvSeries(TvSeries $series): array
     {
-        return $tvSeries->deleteOrFail();
+        $series->restore();
+        return $this->presenter->media($series, true);
     }
 
-    /**
-     * Recupera una Serie TV Eliminata Temporaneamente (Soft Deleted)
-     */
-    public function restoreTvSeries(TvSeries $tvSeries)
+    public function forceDeleteTvSeries(TvSeries $series): void
     {
-        $tvSeries->restore();
-        return $this->getTvSeriesInfo($tvSeries, true);
-    }
+        DB::transaction(function () use ($series) {
+            // The episode rows go with the series (ON DELETE CASCADE), their files do not
+            $series->episodes()->withTrashed()->get()->each(fn (Episode $e) => $this->files->deleteAll($e));
 
-    /**
-     * Elimina definitivamente la Serie TV Selezionata (Hard Delete)
-     */
-    public function forceDeleteTvSeries(TvSeries $tvSeries)
-    {
-        return $tvSeries->forceDelete();
+            $series->forceDelete();
+            $this->files->deleteAll($series);
+        });
     }
 }

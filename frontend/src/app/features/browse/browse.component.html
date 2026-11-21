@@ -3,6 +3,6 @@
     <app-hero-carousel [slides]="featured()" />
   </section>
 
-  <app-media-row [crumbs]="filmsCrumbs" [add]="filmsAdd" [items]="films()" />
-  <app-media-row [crumbs]="seriesCrumbs" [add]="seriesAdd" [items]="series()" />
+  <app-media-row [crumbs]="filmsCrumbs" [add]="filmsAdd" [items]="films()" [priorityCount]="featured().length ? 0 : 5" />
+  <app-media-row [crumbs]="seriesCrumbs" [add]="seriesAdd" [items]="series()" [priorityCount]="featured().length ? 0 : 5" />
 </main>

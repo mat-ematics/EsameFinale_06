@@ -60,6 +60,13 @@ return [
             'report' => false,
         ],
 
+        'media' => [
+            'driver'     => 'local',
+            'root'       => env('MEDIA_ROOT', public_path('files')),
+            'url'        => env('MEDIA_URL', '/files'),
+            'visibility' => 'public',
+            'throw'      => false,
+        ],
     ],
 
     /*

@@ -33,7 +33,7 @@ class Film extends Model
 
     public function files() : MorphToMany
     {
-        return $this->morphToMany(File::class, File::getMorphName())->using(Fileable::class);
+        return $this->morphToMany(File::class, File::getMorphName())->using(Fileable::class)->withPivot('role');
     }
 
     /* --------- METODI ---------*/
@@ -53,28 +53,17 @@ class Film extends Model
     }
 
     public static function getFilmsWithFilters(
-        ?string $name = null,
-        ?string $category = null,
-        ?int $year = null,
-        bool $withTrashed = false
-    ) : Collection {
-        $query = $withTrashed ? static::withTrashed() : static::query();
+        ?string $name = null, ?string $category = null, ?int $year = null,
+        bool $withTrashed = false, ?int $limit = null
+    ): Collection {
+        $query = ($withTrashed ? static::withTrashed() : static::query())
+            ->with(['categories', 'files'])
+            ->when($name, fn ($q, $v) => $q->where('name', 'like', '%' . addcslashes($v, '%_\\') . '%'))
+            ->when($category, fn ($q, $v) => $q->whereHas('categories', fn ($c) => $c->where('name', $v)))
+            ->when($year, fn ($q, $v) => $q->where('year', $v))
+            ->latest()->orderByDesc('id');
 
-        if (!empty($name)) {
-            $query->where('title', 'like', '%' . $name . '%');
-        }
-
-        if (!empty($category)) {
-            $query->whereHas('categories', function ($q) use ($category) {
-                $q->where('name', 'like', '%' . $category . '%');
-            });
-        }
-
-        if (!empty($year)) {
-            $query->where('year', $year);
-        }
-
-        return $query->get();
+        return $limit ? $query->limit($limit)->get() : $query->get();
     }
 
     public static function getFilm(string $film, bool $withTrashed = false) : ?self 

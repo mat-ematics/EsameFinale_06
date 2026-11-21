@@ -1,0 +1,64 @@
+<app-modal [title]="episode() ? 'Edit episode' : 'New episode'" [open]="open()" [dismissible]="!saving()"
+           [closeOnBackdrop]="false" (closed)="closed.emit()">
+  @if (open()) {
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+
+      <div class="mb-3">
+        <label class="form-label" for="epName">Name <span class="required-text">*</span></label>
+        <input id="epName" type="text" class="form-control" formControlName="name" maxlength="255" [ngClass]="{ 'is-invalid': bad('name') }">
+        <div class="invalid-feedback" [class.is-shown]="bad('name')">{{ errors()['name'] }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="epDesc">Description</label>
+        <textarea id="epDesc" class="form-control" rows="2" formControlName="description" maxlength="2000"></textarea>
+      </div>
+
+      <div class="row">
+        <div class="col-6 col-md-3 mb-3">
+          <label class="form-label" for="epSeason">Season</label>
+          <input id="epSeason" type="number" class="form-control" formControlName="season" min="1" [ngClass]="{ 'is-invalid': bad('season') }">
+          <div class="invalid-feedback" [class.is-shown]="bad('season')">{{ errors()['season'] }}</div>
+        </div>
+        <div class="col-6 col-md-3 mb-3">
+          <label class="form-label" for="epNumber">Episode</label>
+          <input id="epNumber" type="number" class="form-control" formControlName="number" min="1" [ngClass]="{ 'is-invalid': bad('number') }">
+          <div class="invalid-feedback" [class.is-shown]="bad('number')">{{ errors()['number'] }}</div>
+        </div>
+        <div class="col-6 col-md-3 mb-3">
+          <label class="form-label" for="epMinutes">Minutes</label>
+          <input id="epMinutes" type="number" class="form-control" formControlName="minutes" min="1" max="240" [ngClass]="{ 'is-invalid': bad('minutes') }">
+          <div class="invalid-feedback" [class.is-shown]="bad('minutes')">{{ errors()['minutes'] }}</div>
+        </div>
+        <div class="col-6 col-md-3 mb-3">
+          <label class="form-label" for="epYear">Year</label>
+          <input id="epYear" type="number" class="form-control" formControlName="year" [ngClass]="{ 'is-invalid': bad('year') }">
+          <div class="invalid-feedback" [class.is-shown]="bad('year')">{{ errors()['year'] }}</div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="epVideo">Video (MP4, up to 50 MB) @if (!episode()) { <span class="required-text">*</span> }</label>
+        @if (episode()?.videoUrl && !video()) { <div class="form-text mb-1">A video is already uploaded. Choose a file to replace it.</div> }
+        <input id="epVideo" type="file" class="form-control" accept="video/mp4" [ngClass]="{ 'is-invalid': bad('video') }" (change)="pick('video', $event)">
+        <div class="invalid-feedback" [class.is-shown]="bad('video')">{{ errors()['video'] }}</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="epCover">Cover</label>
+        <input id="epCover" type="file" class="form-control" accept="image/jpeg,image/png,image/webp" [ngClass]="{ 'is-invalid': bad('cover') }" (change)="pick('cover', $event)">
+        <div class="invalid-feedback" [class.is-shown]="bad('cover')">{{ errors()['cover'] }}</div>
+      </div>
+
+      @if (saving()) {
+        <div class="progress mb-3"><div class="progress-bar bg-danger" [style.width.%]="progress()">{{ progress() }}%</div></div>
+      }
+      @if (formError()) { <div class="alert alert-danger" role="alert">{{ formError() }}</div> }
+
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-outline-light" [disabled]="saving()" (click)="closed.emit()">Cancel</button>
+        <button type="submit" class="btn btn-danger" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save' }}</button>
+      </div>
+    </form>
+  }
+</app-modal>

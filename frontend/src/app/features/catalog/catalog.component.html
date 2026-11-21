@@ -12,9 +12,10 @@
     </section>
 
     @if (sections(); as list) {
-      @for (section of list; track $index) {
-        <app-media-row [crumbs]="section.crumbs" [add]="section.add" [items]="section.items" />
-      }
+      @for (section of list; track $index; let first = $first) {
+        <app-media-row [crumbs]="section.crumbs" [add]="section.add" [items]="section.items"
+                        [priorityCount]="first && !slides().length ? 5 : 0" />
+        }
 
       @if (isEmpty() && !session.isAdmin()) {
         <p class="container-fluid px-4 text-muted">Nothing here yet.</p>

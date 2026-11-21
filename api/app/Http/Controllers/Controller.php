@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\AppHelpers;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 
 abstract class Controller
 {
@@ -36,5 +37,18 @@ abstract class Controller
             ->get(["{$id}", "{$column} as name", ...$extra]);
 
         return AppHelpers::jsonResponse('Results Successfully Retrieved', 200, $rows->toArray());
+    }
+
+    /** ?limit=N (1-100); null when absent */
+    protected function limit(Request $request): ?int
+    {
+        $limit = (int) $request->query('limit', 0);
+        return $limit > 0 ? min($limit, 100) : null;
+    }
+
+    /** The files sent with a media request: cover, banner and video, whichever are there */
+    protected function uploads(Request $request): array
+    {
+        return Arr::only($request->allFiles(), ['cover', 'banner', 'video']);
     }
 }

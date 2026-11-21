@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\api\v1\Media;
 
 use App\Helpers\AppHelpers;
-use App\Helpers\MediaFileRulesHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Media\Episode\EpisodeStoreRequest;
-use App\Http\Requests\Media\Episode\EpisodeUpdateRequest;
 use App\Models\Media\Episode;
 use App\Models\Media\TvSeries;
 use App\Services\Media\EpisodeService;
@@ -15,77 +13,49 @@ use Illuminate\Support\Facades\Gate;
 
 class EpisodeController extends Controller
 {
+    public function __construct(protected EpisodeService $episodeService) {}
 
-    protected EpisodeService $episodeService;
-    
-    /**
-     * Inizializzatore dei Servizi
-     */
-    public function __construct(EpisodeService $episodeService)
-    {
-        $this->episodeService = $episodeService;
-    }
-
-
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request, int $tvSeriesId)
     {
         $isAdmin  = Gate::check('isAdmin');
-        $tvSeries = TvSeries::findSeries($tvSeriesId, $isAdmin);
-
-        $records  = $tvSeries->getEpisodesWithFilters((int) $request->query('season'), $isAdmin);
-        $episodes = $this->episodeService->getEpisodeCollectionInfo($records, $isAdmin);
+        $series   = TvSeries::findSeries($tvSeriesId, $isAdmin);
+        $episodes = $this->episodeService->getEpisodeCollectionInfo(
+            $series->getEpisodesWithFilters((int) $request->query('season'), $isAdmin), $isAdmin
+        );
 
         return AppHelpers::jsonResponse(
-            empty($episodes) ? 'There are no Episodes in this TV Series at the moment' : 'Episodes Successfully Retrieved',
-            200,
-            $episodes ?: []
+            $episodes ? 'Episodes Successfully Retrieved' : 'There are no Episodes in this TV Series at the moment', 200, $episodes
         );
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(EpisodeStoreRequest $request, int $tvSeriesId)
-    {
-        $tvSeries = TvSeries::findSeries($tvSeriesId, true);
-        $data     = $request->validated();
-
-        abort_if(
-            $this->episodeService->isEpisodeTaken($tvSeries->id, $data['season_number'], $data['episode_number']),
-            422,
-            'An episode with this number already exists in the given season.'
-        );
-
-        $files   = collect($request->file('files'))->all();
-        $episode = $this->episodeService->createEpisode($tvSeries->id, $data, $files);
-
-        return AppHelpers::jsonResponse('Episode Successfully Created', 201, $episode);
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(int $tvSeriesId, int $episodeId)
     {
         $isAdmin = Gate::check('isAdmin');
         $episode = Episode::findEpisode($tvSeriesId, $episodeId, $isAdmin);
 
-        $resource = $this->episodeService->getEpisodeInfo($episode, $isAdmin);
-        return AppHelpers::jsonResponse('Episode Successfully Retrieved', 200, $resource);
+        return AppHelpers::jsonResponse('Episode Successfully Retrieved', 200, $this->episodeService->getEpisodeInfo($episode, $isAdmin));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(EpisodeUpdateRequest $request, int $tvSeriesId, int $episodeId)
+    public function store(EpisodeStoreRequest $request, int $tvSeriesId)
+    {
+        $series = TvSeries::findSeries($tvSeriesId, true);
+        $data   = $request->validated();
+
+        abort_if(
+            $this->episodeService->isEpisodeTaken($series->id, $data['season_number'], $data['episode_number']),
+            422, 'An episode with this number already exists in the given season.'
+        );
+
+        $episode = $this->episodeService->createEpisode($series->id, $data, $this->uploads($request));
+        return AppHelpers::jsonResponse('Episode Successfully Created', 201, $episode);
+    }
+
+    public function update(EpisodeStoreRequest $request, int $tvSeriesId, int $episodeId)
     {
         $episode = Episode::findEpisode($tvSeriesId, $episodeId, true);
         $data    = $request->validated();
 
-        // Controlla unicità se ALMENO una delle due cambia, riempendo l'altra eventualmente mancante dal record
+        // The unique check applies if EITHER number changes: fill the missing one from the record
         if (isset($data['season_number']) || isset($data['episode_number'])) {
             abort_if(
                 $this->episodeService->isEpisodeTaken(
@@ -94,23 +64,14 @@ class EpisodeController extends Controller
                     $data['episode_number'] ?? $episode->episode_number,
                     $episode->id
                 ),
-                422,
-                'An episode with this number already exists in the given season.'
+                422, 'An episode with this number already exists in the given season.'
             );
         }
 
-        MediaFileRulesHelper::checkRoleValidity($episode, $data['files_meta']);
-
-        $labels = AppHelpers::extractColumnFromArray($data['files_meta'], 'label');
-        $files  = $episode->getManyFilesByLabels($labels);
-
-        $updated = $this->episodeService->updateEpisode($tvSeriesId, $episode, $data, $files);
+        $updated = $this->episodeService->updateEpisode($episode, $data, $this->uploads($request));
         return AppHelpers::jsonResponse('Episode Successfully Updated', 200, $updated);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(int $tvSeriesId, int $episodeId)
     {
         $episode = Episode::findEpisode($tvSeriesId, $episodeId, true);
@@ -125,14 +86,13 @@ class EpisodeController extends Controller
         $episode = Episode::findEpisode($tvSeriesId, $episodeId, true);
         abort_unless($episode->trashed(), 409, 'Episode is Not Deleted');
 
-        $resource = $this->episodeService->restoreEpisode($episode);
-        return AppHelpers::jsonResponse('Episode Successfully Restored', 200, $resource);
+        return AppHelpers::jsonResponse('Episode Successfully Restored', 200, $this->episodeService->restoreEpisode($episode));
     }
 
     public function forceDestroy(int $tvSeriesId, int $episodeId)
     {
         $episode = Episode::findEpisode($tvSeriesId, $episodeId, true);
-        abort_unless($episode->trashed(), 409, 'Episode is Not Deleted');
+        abort_unless($episode->trashed(), 409, 'Episode is Not (Soft) Deleted');
 
         $this->episodeService->forceDeleteEpisode($episode);
         return AppHelpers::jsonResponse('Episode has been Permanently Deleted', 200);

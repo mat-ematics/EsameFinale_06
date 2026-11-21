@@ -1,58 +1,10 @@
 import { Injectable } from '@angular/core';
-import { map, Observable, of } from 'rxjs';
-import { MediaDetail, MediaSummary, MediaType, sameGenre } from '../models/media';
-
-/**
- * MOCK DATA. Replace the bodies with ApiService calls (/films, /tv-series, /categories)
- * and map the API resources to these models. The signatures can stay as they are.
- */
-
-const LOCAL_IMAGE = 'media/images/film_example.jpg';
-const CATEGORIES = ['Animation', 'Sci-Fi', 'Horror'];
-
-const placeholder = (width: number, height: number, text: string) =>
-  `https://placehold.co/${width}x${height}?text=${encodeURIComponent(text)}`;
-
-const FILMS: MediaDetail[] = Array.from({ length: 12 }, (_, i) => {
-  const id = i + 1;
-  return {
-    id,
-    type: 'film',
-    title: id === 1 ? 'Nathan' : `Film ${id}`,
-    year: 2001 + i,
-    image: id === 1 ? LOCAL_IMAGE : placeholder(640, 360, `Film ${id}`),
-    description: id === 1
-      ? 'Nathan discovers the world together with the audience he takes along on a dazzling adventure. Life.'
-      : 'Placeholder description.',
-    durationMinutes: 67 + i * 5,
-    directors: 'Sean Decolavic',
-    actors: 'Mike Dafoe',
-    categories: [CATEGORIES[i % CATEGORIES.length]],
-    languages: ['Italian'],
-    subtitles: ['Italian', 'English', 'French'],
-  };
-});
-
-const SERIES: MediaDetail[] = Array.from({ length: 12 }, (_, i) => {
-  const id = i + 1;
-  return {
-    id,
-    type: 'tv-series',
-    title: `Series ${id}`,
-    year: 2010 + i,
-    endYear: 2015 + i,
-    seasonCount: 2,
-    image: placeholder(640, 360, `Series ${id}`),
-    description: 'Placeholder description.',
-    directors: 'Sean Decolavic',
-    actors: 'Mike Dafoe',
-    categories: [CATEGORIES[i % CATEGORIES.length]],
-    episodes: [1, 2].flatMap(season =>
-      [1, 2, 3, 4].map(number => ({
-        id: season * 100 + number, season, number, title: `Episode ${number}`, durationMinutes: 42,
-      }))),
-  };
-});
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, catchError, forkJoin, map, of, shareReplay, throwError } from 'rxjs';
+import { ApiService } from './api.service';
+import { toDetail, toSlide, toSummary } from './media-mappers';
+import { ApiEpisode, ApiMedia } from '../models/media-api';
+import { Category, MediaDetail, MediaSummary, MediaType, matchesGenre, mediaSegment, sameGenre } from '../models/media';
 
 export interface MediaFilter {
   type?: MediaType;
@@ -60,60 +12,76 @@ export interface MediaFilter {
   q?: string;
 }
 
-const toSummary = ({ id, type, title, image, year }: MediaDetail): MediaSummary =>
-  ({ id, type, title, image, year });
-const source = (type: MediaType) => (type === 'film' ? FILMS : SERIES);
-
 @Injectable({ providedIn: 'root' })
-export class MediaCatalogService {
+export class MediaCatalogService extends ApiService {
 
-  private filtered(filter: MediaFilter): MediaDetail[] {
-    const q = filter.q?.trim().toLowerCase();
-    const category = filter.category;
-    const pool = filter.type ? source(filter.type) : [...FILMS, ...SERIES];
+  /** The genres rarely change: fetched once and shared */
+  private readonly all$ = this.request<Category[]>(['categories'], 'GET', null, { compact: 1 }).pipe(
+    map(res => (res.data ?? []).map(({ name, label }) => ({ name, label: label || name }))),
+    shareReplay({ bufferSize: 1, refCount: false }),
+    );
 
-    return pool.filter(m => 
-        (!category || m.categories.some(c => sameGenre(c, category)))
-        && (!q || m.title.toLowerCase().includes(q)));
-  }
-
-  /** The real name of a genre from its URL form, ignoring case. null = no such genre */
-    genreName(slug: string): Observable<string | null> {
-    return this.categories().pipe(map(names => names.find(name => sameGenre(name, slug)) ?? null));
+    categories(): Observable<Category[]> {
+        return this.all$;
     }
 
-  list(filter: MediaFilter): Observable<MediaSummary[]> {
-    return of(this.filtered(filter).map(toSummary));
-  }
+    /** The genre behind a URL slug, ignoring case. null = no such genre */
+    genre(slug: string): Observable<Category | null> {
+        return this.all$.pipe(map(list => list.find(category => matchesGenre(category, slug)) ?? null));
+    }
+
 
   featured(filter: MediaFilter = {}): Observable<MediaSummary[]> {
-    const pool = filter.type || filter.category
-        ? this.filtered(filter).slice(0, 4)
-        : [FILMS[0], SERIES[0], FILMS[1], SERIES[1]];
+    const params: Record<string, string | number> = { limit: 5 };
+    if (filter.type) params['type'] = filter.type;
+    if (filter.category) params['category'] = filter.category;
 
-    return of(pool.map(m => ({
-        ...toSummary(m),
-        image: m === FILMS[0] ? LOCAL_IMAGE : placeholder(1280, 400, m.title),
-    })));
+    return this.request<ApiMedia[]>(['media', 'featured'], 'GET', null, params).pipe(
+      map(res => (res.data ?? []).map(toSlide)),
+    );
   }
 
   latest(type: MediaType): Observable<MediaSummary[]> {
-    return of(source(type).slice(0, 10).map(toSummary));
+    return this.fetch(type, { limit: 10 });
+  }
+
+  list(filter: MediaFilter): Observable<MediaSummary[]> {
+    const params: Record<string, string | number> = {};
+    if (filter.category) params['category'] = filter.category;
+    if (filter.q) params['name'] = filter.q;
+
+    return filter.type
+      ? this.fetch(filter.type, params)
+      : forkJoin([this.fetch('film', params), this.fetch('tv-series', params)]).pipe(map(([a, b]) => [...a, ...b]));
   }
 
   /** null = not found */
   detail(type: MediaType, id: number): Observable<MediaDetail | null> {
-    return of(source(type).find(m => m.id === id) ?? null);
+    if (!Number.isInteger(id)) return of(null);
+
+    const media$ = this.request<ApiMedia>([mediaSegment(type), id], 'GET');
+    const episodes$ = type === 'tv-series'
+      ? this.request<ApiEpisode[]>([mediaSegment(type), id, 'episodes'], 'GET').pipe(map(res => res.data ?? []))
+      : of([] as ApiEpisode[]);
+
+    return forkJoin([media$, episodes$]).pipe(
+      map(([res, episodes]) => (res.data ? toDetail(res.data, episodes) : null)),
+      catchError(err => err instanceof HttpErrorResponse && err.status === 404 ? of(null) : throwError(() => err)),
+    );
   }
 
   related(media: MediaDetail): Observable<MediaSummary[]> {
-    return of(source(media.type)
-      .filter(m => m.id !== media.id && m.categories.some(c => media.categories.includes(c)))
-      .slice(0, 10)
-      .map(toSummary));
+    const genre = media.categories[0];
+    if (!genre) return of([]);
+
+    return this.list({ type: media.type, category: genre }).pipe(
+      map(items => items.filter(item => item.id !== media.id).slice(0, 10)),
+    );
   }
 
-  categories(): Observable<string[]> {
-    return of(CATEGORIES);
+  private fetch(type: MediaType, params: Record<string, string | number>): Observable<MediaSummary[]> {
+    return this.request<ApiMedia[]>([mediaSegment(type)], 'GET', null, params).pipe(
+      map(res => (res.data ?? []).map(toSummary)),
+    );
   }
 }

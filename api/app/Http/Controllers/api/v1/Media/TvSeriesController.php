@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\api\v1\Media;
 
 use App\Helpers\AppHelpers;
-use App\Helpers\MediaFileRulesHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Media\TvSeries\TvSeriesStoreRequest;
-use App\Http\Requests\Media\TvSeries\TvSeriesUpdateRequest;
 use App\Models\Media\TvSeries;
 use App\Services\Media\TvSeriesService;
 use Illuminate\Http\Request;
@@ -14,107 +12,70 @@ use Illuminate\Support\Facades\Gate;
 
 class TvSeriesController extends Controller
 {
+    public function __construct(protected TvSeriesService $TvSeriesService) {}
 
-    protected TvSeriesService $tvSeriesService;
-    
-    /**
-     * Inizializzatore dei Servizi
-     */
-    public function __construct(TvSeriesService $tvSeriesService)
-    {   
-        $this->tvSeriesService = $tvSeriesService;
-    }
-
-
-    /**
-     * Display a listing of the resource.
-     */
     public function index(Request $request)
     {
         $isAdmin = Gate::check('isAdmin');
 
         $records = TvSeries::getTvSeriesWithFilters(
-            $request->query('name'),
-            $request->query('category'),
-            (int) $request->query('year'),
-            $isAdmin
+            $request->query('name'), $request->query('category'), (int) $request->query('year'),
+            $isAdmin, $this->limit($request),
         );
-        $tvSeries = $this->tvSeriesService->getTvSeriesCollectionInfo($records, $isAdmin);
+        $films = $this->TvSeriesService->getTvSeriesCollectionInfo($records, $isAdmin);
 
         return AppHelpers::jsonResponse(
-            empty($tvSeries) ? 'There are no TV Series at the moment' : 'TV Series Successfully Retrieved',
-            200,
-            $tvSeries ?: []
+            $films ? 'Films Successfully Retrieved' : 'There are no Films present at the moment', 200, $films
         );
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(TvSeriesStoreRequest $request)
-    {
-        $files    = collect($request->file('files'))->all();
-        $tvSeries = $this->tvSeriesService->createTvSeries($request->validated(), $files);
-
-        return AppHelpers::jsonResponse('TV Series Successfully Created', 201, $tvSeries);
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(int $tvSeriesId)
     {
         $isAdmin = Gate::check('isAdmin');
-        $record  = TvSeries::findSeries($tvSeriesId, $isAdmin);
+        $TvSeries = TvSeries::findSeries($tvSeriesId, $isAdmin);
 
-        $resource = $this->tvSeriesService->getTvSeriesInfo($record, $isAdmin);
-        return AppHelpers::jsonResponse('TV Series Successfully Retrieved', 200, $resource);
+        return AppHelpers::jsonResponse('TvSeries Successfully Retrieved', 200, $this->TvSeriesService->getTvSeriesInfo($TvSeries, $isAdmin));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(TvSeriesUpdateRequest $request, int $tvSeriesId)
+    public function store(TvSeriesStoreRequest $request)
     {
-        $record = TvSeries::findSeries($tvSeriesId, Gate::check('isAdmin'));
-        $data = $request->validated();
-
-        MediaFileRulesHelper::checkRoleValidity($record, $data['files_meta']);
-
-        $labels = AppHelpers::extractColumnFromArray($data['files_meta'], 'label');
-        $files  = $record->getManyFilesByLabels($labels);
-
-        $updated = $this->tvSeriesService->updateTvSeries($record, $data, $files);
-        return AppHelpers::jsonResponse('TV Series Successfully Updated', 200, $updated);
+        $TvSeries = $this->TvSeriesService->createTvSeries($request->validated(), $this->uploads($request));
+        return AppHelpers::jsonResponse('TvSeries Successfully Created', 201, $TvSeries);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    public function update(TvSeriesStoreRequest $request, int $tvSeriesId)
+    {
+        $TvSeries = TvSeries::findSeries($tvSeriesId, true);
+
+        $updated = $this->TvSeriesService->updateTvSeries(
+            $TvSeries, $request->validated(), $this->uploads($request), $request->boolean('remove_banner')
+        );
+        return AppHelpers::jsonResponse('TvSeries Successfully Updated', 200, $updated);
+    }
+
     public function destroy(int $tvSeriesId)
     {
-        $record = TvSeries::findSeries($tvSeriesId);
-        abort_if($record->trashed(), 409, 'The Selected TV Series is already Deleted');
+        $TvSeries = TvSeries::findSeries($tvSeriesId, true);
+        abort_if($TvSeries->trashed(), 409, 'The Selected TvSeries is already Deleted');
 
-        $this->tvSeriesService->deleteTvSeries($record);
-        return AppHelpers::jsonResponse('TV Series Successfully Deleted', 200);
+        $this->TvSeriesService->deleteTvSeries($TvSeries);
+        return AppHelpers::jsonResponse('TvSeries Successfully Deleted', 200);
     }
 
     public function restore(int $tvSeriesId)
     {
-        $record = TvSeries::findSeries($tvSeriesId, true);
-        abort_unless($record->trashed(), 409, 'TV Series is Not Deleted');
+        $TvSeries = TvSeries::findSeries($tvSeriesId, true);
+        abort_unless($TvSeries->trashed(), 409, 'TvSeries is Not Deleted');
 
-        $resource = $this->tvSeriesService->restoreTvSeries($record);
-        return AppHelpers::jsonResponse('TV Series Successfully Restored', 200, $resource);
+        return AppHelpers::jsonResponse('TvSeries Successfully Restored', 200, $this->TvSeriesService->restoreTvSeries($TvSeries));
     }
 
     public function forceDestroy(int $tvSeriesId)
     {
-        $record = TvSeries::findSeries($tvSeriesId);
-        abort_unless($record->trashed(), 409, 'TV Series is Not (Soft) Deleted');
+        $TvSeries = TvSeries::findSeries($tvSeriesId, true);
+        abort_unless($TvSeries->trashed(), 409, 'TvSeries is Not (Soft) Deleted');
 
-        $this->tvSeriesService->forceDeleteTvSeries($record);
-        return AppHelpers::jsonResponse('TV Series has been Permanently Deleted', 200);
+        $this->TvSeriesService->forceDeleteTvSeries($TvSeries);
+        return AppHelpers::jsonResponse('TvSeries has been Permanently Deleted', 200);
     }
 }

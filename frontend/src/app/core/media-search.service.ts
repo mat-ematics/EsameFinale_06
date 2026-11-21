@@ -34,11 +34,6 @@ export class MediaSearchService extends ApiService {
   }
 }
 
-/**
- * TODO: point this at the real cover field once the resource shape is known.
- * Paste the JSON of GET /api/v1/films/1 and it can be finished in one line.
- */
 function coverUrl(media: Record<string, any>, title: string): string {
-  const cover = media?.['files']?.find?.((file: any) => file.role === 'cover');
-  return cover?.url ?? media?.['cover_url'] ?? `https://placehold.co/640x360?text=${encodeURIComponent(title)}`;
+  return media?.['cover_url'] ?? `https://placehold.co/640x360?text=${encodeURIComponent(title)}`;
 }

@@ -1,3 +1,5 @@
+import { RouterLinkWithHref } from "@angular/router";
+
 export type MediaType = 'film' | 'tv-series';
 
 /** Enough to draw a card */
@@ -7,6 +9,8 @@ export interface MediaSummary {
   title: string;
   image: string;
   year: number;
+  /** Admins also see soft-deleted titles */
+  deleted?: boolean;
 }
 
 export interface Episode {
@@ -15,17 +19,25 @@ export interface Episode {
   number: number;
   title: string;
   durationMinutes: number;
+  description?: string | null;
+  length?: string;
+  year?: number;
+  videoUrl?: string | null;
+  image?: string | null;
+  deleted?: boolean;
 }
 
 export interface MediaDetail extends MediaSummary {
   description: string | null;
-  durationMinutes?: number;          // films
-  seasonCount?: number;              // series
-  endYear?: number | null;           // series
+  durationMinutes?: number;
+  seasonCount?: number;
+  endYear?: number | null;
   directors: string;
   actors: string;
   categories: string[];
-  /** Not stored by the backend yet: the page hides these rows when missing */
+  categoryLabels?: string[];
+  bannerUrl?: string | null;
+  videoUrl?: string | null;
   languages?: string[];
   subtitles?: string[];
   episodes?: Episode[];
@@ -33,6 +45,8 @@ export interface MediaDetail extends MediaSummary {
 
 export const MEDIA_LABEL: Record<MediaType, string> = { film: 'Films', 'tv-series': 'TV Series' };
 const ROUTE_SEGMENT: Record<MediaType, string> = { film: 'films', 'tv-series': 'tv-series' };
+/** 'films' or 'tv-series': the API and the routes use the same word */
+export const mediaSegment = (type: MediaType): string => ROUTE_SEGMENT[type];
 
 export const mediaSectionLink = (type: MediaType) => ['/', ROUTE_SEGMENT[type]];
 export const mediaLink = (item: Pick<MediaSummary, 'type' | 'id'>) => ['/', ROUTE_SEGMENT[item.type], item.id];
@@ -69,6 +83,17 @@ export interface AddTarget {
 export const typeCrumb = (type: MediaType): Crumb =>
   ({ label: MEDIA_LABEL[type], link: mediaSectionLink(type) });
 
+export interface Category {
+  name: string;          // technical key: API filters, form values, URLs
+  label: string;         // what people read
+}
+
+/** A URL slug matches the machine name or the label: /genre/scifi and /genre/sci-fi are the same genre */
+export const matchesGenre = (category: Category, slug: string): boolean => {
+  const wanted = genreSlug(slug);
+  return genreSlug(category.name) === wanted || genreSlug(category.label) === wanted;
+};
+
 /** URL form of a genre: "Sci-Fi" -> "sci-fi", "Science Fiction" -> "science-fiction" */
 export const genreSlug = (name: string): string =>
   name.normalize('NFD').replace(/[\u0300-\u036f]/g, '')      // accents: "Fantascienza", "Azione"…
@@ -80,11 +105,11 @@ export const genreSlug = (name: string): string =>
 export const sameGenre = (a: string, b: string): boolean => genreSlug(a) === genreSlug(b);
 
 /** A genre across both types: /genre/sci-fi */
-export const genreLink = (genre: string) => ['/genre', genreSlug(genre)];
+export const genreLink = (category: Category) => ['/genre', genreSlug(category.name)];
 
 /** The label keeps the real name, the link uses the slug */
-export const genreCrumb = (type: MediaType, genre: string): Crumb =>
-  ({ label: genre, link: ['/', ROUTE_SEGMENT[type], 'genre', genreSlug(genre)] });
+export const genreCrumb = (type: MediaType, category: Category): Crumb =>
+  ({ label: category.label, link: ['/', ROUTE_SEGMENT[type], 'genre', genreSlug(category.name)] });
 
 /** The future "Insert film" page: /admin/films/new?genre=horror */
 export const mediaAddLink = (target: AddTarget) => ({

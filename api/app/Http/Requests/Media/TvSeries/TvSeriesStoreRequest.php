@@ -9,38 +9,47 @@ use App\Rules\YearRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
+namespace App\Http\Requests\Media;
+
+use App\Models\Media\TvSeries;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
 class TvSeriesStoreRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
+    use MediaUploadRules;
+
     public function authorize(): bool
     {
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
-        return array_merge(
-            [
-                'name' => 'required|string|max:255|unique:films,name',
-                'description' => 'string|max:255|nullable',
-                'categories' => 'required|array|min:1',
-                'categories.*' => [
-                    'string', 
-                    Rule::in(Category::pluck('name')->toArray()),
-                ],
-                'directors' => 'required|string|max:255',
-                'actors' => 'required|string|max:255',
-                'start_year' => ['required', new YearRule()],
-                'end_year' => ['nullable', new YearRule($this->data()['start_year'] ?? null)],
+        $creating = $this->isMethod('POST');
+        $required = $creating ? 'required' : 'sometimes';
+        $series   = $this->route('tvSeriesId') ? TvSeries::withTrashed()->find($this->route('tvSeriesId')) : null;
+        $max      = $this->maxYear();
+
+        return [
+            'name'         => [$required, 'string', 'max:255', Rule::unique('tv_series', 'name')->ignore($series?->id)],
+            'description'  => ['nullable', 'string', 'max:2000'],
+            'directors'    => [$required, 'string', 'max:255'],
+            'actors'       => [$required, 'string', 'max:255'],
+            'start_year'   => [$required, 'integer', "between:1888,$max"],
+            'end_year'     => [
+                'nullable', 'integer', "between:1888,$max",
+                function ($attribute, $value, $fail) use ($series) {
+                    $start = (int) $this->input('start_year', $series?->start_year);
+                    if ($start && (int) $value < $start) $fail('The end year cannot be before the start year.');
+                },
             ],
-            MediaFileRulesHelper::storeRules(MediaTypeEnum::TvSeries),
-        );
+            'categories'   => [$required, 'array', 'min:1'],
+            'categories.*' => ['string', Rule::exists('categories', 'name')],
+
+            'cover'         => [$creating ? 'required' : 'sometimes', ...$this->imageRules()],
+            'banner'        => ['sometimes', ...$this->imageRules()],
+            'remove_banner' => ['sometimes', 'boolean'],
+        ];
     }
 }

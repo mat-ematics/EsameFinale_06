@@ -32,15 +32,10 @@ export class MediaListComponent {
   protected readonly matchLabel = MATCH_LABEL;
 
   
-/**
- * The real name of the genre in the URL ("sci-fi" -> "Sci-Fi").
- * undefined = no genre in the URL, or still resolving. null = no such genre
- */
+    // 1. The genre signal now holds the Category
     protected readonly genre = toSignal(
     toObservable(this.category).pipe(
-        switchMap(slug => (slug
-        ? this.catalog.genreName(slug).pipe(startWith(undefined))
-        : of(undefined))),
+        switchMap(slug => (slug ? this.catalog.genre(slug).pipe(startWith(undefined)) : of(undefined))),
     ),
     );
 
@@ -48,7 +43,9 @@ export class MediaListComponent {
 
   private readonly filter = computed(() => ({
   type: this.type(),
-    category: this.genre() ?? undefined,
+    // 2. In filter(): the API filters by the machine name
+    category: this.genre()?.name,
+
     q: this.q()?.trim() || undefined,
     // The genre name is still being resolved: do not list everything meanwhile
     waiting: !!this.category() && this.genre() === undefined,
@@ -64,18 +61,20 @@ export class MediaListComponent {
   );
 
   protected readonly title = computed(() => {
-    const { q, type, category } = this.filter();
+    const { q, type } = this.filter();
+    const label = this.genre()?.label;
     if (q) return `Results for "${q}"`;
-    if (type && category) return `${MEDIA_LABEL[type]}: ${category}`;
+    if (type && label) return `${MEDIA_LABEL[type]}: ${label}`;
     if (type) return MEDIA_LABEL[type];
-    return category ? `Genre: ${category}` : 'Catalog';
+    return label ? `Genre: ${label}` : 'Catalog';
   });
 
   /** Breadcrumb of the grid: "Films › Animation" (the last step is where we are) */
   protected readonly crumbs = computed<Crumb[]>(() => {
-    const { type, category } = this.filter();
-    if (!type) return category ? [{ label: category }] : [];
-    return category ? [typeCrumb(type), { label: category }] : [typeCrumb(type)];
+    const { type } = this.filter();
+    const label = this.genre()?.label;
+    if (!type) return label ? [{ label }] : [];
+    return label ? [typeCrumb(type), { label }] : [typeCrumb(type)];
   });
 
   protected readonly addTarget = computed<AddTarget | null>(() => {

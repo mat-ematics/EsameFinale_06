@@ -17,6 +17,7 @@ return new class extends Migration
                 $table->foreignId('file_id')->constrained('files')->cascadeOnDelete();
                 $table->morphs('fileable');
                 $table->string('role')->default(FileRoleEnum::Other->value); //Ruolo/i opzionali del file (poster, cover...)
+                $table->unique(['fileable_type', 'fileable_id', 'role'], 'fileables_unique_role');
             });
         }
     }

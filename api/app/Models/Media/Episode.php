@@ -31,28 +31,14 @@ class Episode extends Model
 
     protected static function booted()
     {
-        static::created(function ($episode) {
-            self::recalculateCounts($episode->tv_series_id);
-        });
-
-        static::updated(function ($episode) {
-            self::recalculateCounts($episode->tv_series_id);
-        });
-
-        static::deleted(function ($episode) {
-            self::recalculateCounts($episode->tv_series_id);
-        });
-
-        static::restored(function ($episode) {
-            self::recalculateCounts($episode->tv_series_id);
-        });
+        foreach (['created', 'updated', 'deleted', 'restored', 'forceDeleted'] as $event) {
+            static::$event(fn ($episode) => self::recalculateCounts($episode->tv_series_id));
+        }
     }
 
-    protected static function recalculateCounts(int $tvSeriesId)
+    protected static function recalculateCounts(int $tvSeriesId): void
     {
-        $tvSeries = TvSeries::with('episodes')->find($tvSeriesId);
-
-        $tvSeries->recalculateCounts();
+        TvSeries::withTrashed()->with('episodes')->find($tvSeriesId)?->recalculateCounts();
     }
 
     /* --------- RELAZIONI ---------*/
@@ -64,7 +50,7 @@ class Episode extends Model
 
     public function files() : MorphToMany
     {
-        return $this->morphToMany(File::class, File::getMorphName())->using(Fileable::class);
+        return $this->morphToMany(File::class, File::getMorphName())->using(Fileable::class)->withPivot('role');;
     }
 
     /* --------- METODI STATICI ---------*/

@@ -1,15 +1,20 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { of, switchMap } from 'rxjs';
+import { finalize, Observable, of, switchMap } from 'rxjs';
 import { MediaRowComponent } from '../../shared/media-row/media-row.component';
 import { MediaCatalogService } from '../../core/media-catalog.service';
 import { SessionService } from '../../core/session.service';
-import { Crumb, Episode, MediaSummary, genreCrumb, typeCrumb } from '../../models/media';
+import { Crumb, Episode, MediaSummary, genreCrumb, mediaSectionLink, mediaSegment, typeCrumb } from '../../models/media';
 import { MediaType } from '../../models/media';
+import { Router } from 'express';
+import { MediaAdminService } from '../../core/media-admin.service.js';
+import { apiErrorMessage } from '../../core/api.service.js';
+import { EpisodeFormComponent } from './episode-form/episode-form.component';
+import { ModalComponent } from '../../shared/modal/modal.component';
 
 @Component({
   selector: 'app-media-detail',
-  imports: [MediaRowComponent],
+  imports: [MediaRowComponent, EpisodeFormComponent, ModalComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './media-detail.component.html',
   styleUrl: './media-detail.component.scss',
@@ -22,11 +27,37 @@ export class MediaDetailComponent {
   private readonly catalog = inject(MediaCatalogService);
   protected readonly session = inject(SessionService);
 
-  /** undefined = loading, null = not found */
-  protected readonly media = toSignal(
-    toObservable(computed(() => ({ type: this.type(), id: Number(this.id()) })))
-      .pipe(switchMap(({ type, id }) => this.catalog.detail(type, id))),
-  );
+  private readonly router = inject(Router);
+    private readonly admin = inject(MediaAdminService);
+
+    /** Bumped after every change, so the page loads again */
+    private readonly reload = signal(0);
+
+    protected readonly media = toSignal(
+    toObservable(computed(() => ({ type: this.type(), id: Number(this.id()), reload: this.reload() })))
+        .pipe(switchMap(({ type, id }) => this.catalog.detail(type, id))),
+    );
+
+  protected readonly actionError = signal<string | null>(null);
+  protected readonly busy = signal(false);
+  protected readonly confirmingPermanent = signal(false);
+
+    protected readonly canPlay = computed(() => {
+        const m = this.media();
+        if (!m) return false;
+        return m.type === 'film' ? !!m.videoUrl : !!m.episodes?.some(e => e.videoUrl && !e.deleted);
+    });
+
+    /** Run an admin action: block the buttons meanwhile and show the server's message on failure */
+    private run(action: () => Observable<unknown>, done: () => void) {
+        this.actionError.set(null);
+        this.busy.set(true);
+        action().pipe(finalize(() => this.busy.set(false))).subscribe({
+            next: done,
+            error: err => this.actionError.set(apiErrorMessage(err)),
+        });
+    }
+
 
   protected readonly related = toSignal(
     toObservable(this.media).pipe(switchMap(m => (m ? this.catalog.related(m) : of([] as MediaSummary[])))),
@@ -53,18 +84,18 @@ export class MediaDetailComponent {
     return [
       { label: 'Director', value: m.directors },
       { label: 'Cast', value: m.actors },
-      { label: 'Genre', value: m.categories.join(', ') },
+      { label: 'Genre', value: (m.categoryLabels ?? m.categories).join(', ') },
       { label: 'Language', value: m.languages?.join(', ') },
       { label: 'Subtitles', value: m.subtitles?.join(', ') },
     ].filter(row => !!row.value);
   });
 
-    protected readonly relatedCrumbs = computed<Crumb[]>(() => {
-        const m = this.media();
-        if (!m) return [];
-        const genre = m.categories[0];
-    return genre ? [typeCrumb(m.type), genreCrumb(m.type, genre)] : [typeCrumb(m.type)];
-    });
+  protected readonly relatedCrumbs = computed<Crumb[]>(() => {
+    const m = this.media();
+    const name = m?.categories[0];
+    if (!m || !name) return m ? [typeCrumb(m.type)] : [];
+    return [typeCrumb(m.type), genreCrumb(m.type, { name, label: m.categoryLabels?.[0] ?? name })];
+  });
 
   /* --------- Seasons (the choice resets when another title opens) --------- */
   private readonly seasonChoice = signal({ id: '', season: 1 });
@@ -82,14 +113,71 @@ export class MediaDetailComponent {
   /* --------- Actions (interfaces ready: connect them to the API later) --------- */
   protected readonly confirmingDelete = signal(false);
 
-  protected play() { /* TODO: open the player */ }
-  protected edit() { /* TODO: open the edit form */ }
-  protected remove() {
-    // TODO: call the delete endpoint, then go back to the list
-    this.confirmingDelete.set(false);
-  }
+    protected play(episode?: Episode) {
+    const m = this.media();
+    if (!m) return;
 
-  protected playEpisode(episode: Episode) { /* TODO */ }
-  protected editEpisode(episode: Episode) { /* TODO */ }
-  protected removeEpisode(episode: Episode) { /* TODO */ }
+    if (m.type === 'film') {
+        this.router.navigate(['/watch', 'film', m.id]);
+        return;
+    }
+    const target = episode ?? m.episodes?.find(e => e.videoUrl && !e.deleted);
+    if (target) this.router.navigate(['/watch', 'tv-series', m.id, target.id]);
+    }
+
+    protected edit() {
+        const m = this.media();
+        if (m) this.router.navigate(['/admin', mediaSegment(m.type), m.id, 'edit']);
+    }
+
+    protected remove() {
+        const m = this.media();
+        if (!m) return;
+        this.run(() => this.admin.softDelete(m.type, m.id), () => { this.confirmingDelete.set(false); this.reload.update(n => n + 1); });
+    }
+
+    protected restore() {
+        const m = this.media();
+        if (m) this.run(() => this.admin.restore(m.type, m.id), () => this.reload.update(n => n + 1));
+    }
+
+    protected removePermanently() {
+        const m = this.media();
+        if (!m) return;
+        this.run(() => this.admin.forceDelete(m.type, m.id), () => {
+            this.confirmingPermanent.set(false);
+            this.router.navigate(mediaSectionLink(m.type));
+        });
+    }
+
+    /* --------- Episodes --------- */
+    protected readonly episodeFormOpen = signal(false);
+    protected readonly episodeBeingEdited = signal<Episode | null>(null);
+
+    /** Next free number of the selected season, and the series' start year */
+    protected readonly suggestion = computed(() => {
+    const season = this.season();
+    const numbers = (this.media()?.episodes ?? []).filter(e => e.season === season).map(e => e.number);
+    return { season, number: (numbers.length ? Math.max(...numbers) : 0) + 1, year: (this.media()?.year ?? new Date().getFullYear()) + season - 1 };
+    });
+
+    protected openEpisodeForm(episode: Episode | null) {
+    this.episodeBeingEdited.set(episode);
+    this.episodeFormOpen.set(true);
+    }
+
+    protected onEpisodeSaved() {
+    this.episodeFormOpen.set(false);
+    this.reload.update(n => n + 1);
+    }
+
+    protected removeEpisode(episode: Episode) {
+    const m = this.media();
+    if (m) this.run(() => this.admin.deleteEpisode(m.id, episode.id), () => this.reload.update(n => n + 1));
+    }
+
+    protected restoreEpisode(episode: Episode) {
+        const m = this.media();
+        if (m) this.run(() => this.admin.restoreEpisode(m.id, episode.id), () => this.reload.update(n => n + 1));
+    }
 }
