@@ -3,6 +3,7 @@
 use App\Http\Controllers\api\v1\Authentication\AuthController;
 use App\Http\Controllers\api\v1\Authorization\PermissionController;
 use App\Http\Controllers\api\v1\Authorization\RoleController;
+use App\Http\Controllers\api\v1\File\UploadController;
 use App\Http\Controllers\api\v1\Global\ConfigController;
 use App\Http\Controllers\api\v1\Global\LanguageController;
 use App\Http\Controllers\api\v1\Global\TranslationController;
@@ -221,6 +222,14 @@ Route::prefix('v1')->group(function () {
 
         /* ---- MEDIA GENERALE ---- */
         Route::get('/media/featured', [MediaFeedController::class, 'featured'])->middleware('throttle:60,1');
+        
+        /* ---- UPLOAD FILE ---- */
+        Route::prefix('/uploads')->middleware('admin')->whereUuid('uploadId')->group(function () {
+            Route::post('/', [UploadController::class, 'start'])->middleware('throttle:30,1');
+            Route::get('/{uploadId}', [UploadController::class, 'status']);
+            Route::put('/{uploadId}', [UploadController::class, 'append'])->middleware('throttle:900,1');
+            Route::delete('/{uploadId}', [UploadController::class, 'cancel']);
+        });
 
         /* ---- CATEGORIE ---- */
 

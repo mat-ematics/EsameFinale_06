@@ -1,25 +1,132 @@
-
 <main class="container-fluid px-4 py-3 min-vh-100">
-    @if (media(); as m) {
+
+  @if (loading()) {
+    <p class="text-muted">Loading…</p>
+
+  } @else if (failure(); as message) {
+    <div class="alert alert-danger" role="alert">{{ message }}</div>
+    <button type="button" class="btn btn-outline-light btn-sm" (click)="reload.update(n => n + 1)">Try again</button>
+
+  } @else if (media(); as m) {
+
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-        <h1 class="h5 mb-0">{{ title() }}</h1>
-        <span class="d-flex gap-2">
-        @if (next(); as n) {
-            <a class="btn btn-brand btn-sm" [routerLink]="['/watch', 'tv-series', m.id, n.id]">Next episode <i class="bi bi-skip-forward-fill"></i></a>
-        }
-        <a class="btn btn-outline-light btn-sm" [routerLink]="back()">Back</a>
-        </span>
+      <h1 class="h5 mb-0">{{ heading() }}</h1>
+      <a class="btn btn-outline-light btn-sm" [routerLink]="back()"><i class="bi bi-arrow-left"></i> Back</a>
     </div>
 
-    @if (source(); as src) {
-        <video class="w-100 rounded bg-black" controls autoplay playsinline preload="metadata"
-                [src]="src" [attr.poster]="poster()"></video>
-    } @else {
-        <p class="text-muted">This title has no video yet.</p>
-    }
-    } @else if (media() === null) {
+    <div class="row g-3">
+      <div class="col-12" [class.col-xl-9]="m.type === 'tv-series'">
+
+        @if (source(); as src) {
+          <div #stage class="stage" [class.is-fullscreen]="fullscreen()">
+            <video #video class="player" controls controlsList="nofullscreen" playsinline autoplay preload="metadata"
+                   [src]="src" [attr.poster]="poster()"
+                   (loadstart)="buffering.set(true)" (waiting)="buffering.set(true)"
+                   (canplay)="buffering.set(false)" (playing)="buffering.set(false)"
+                   (loadedmetadata)="onLoadedMetadata()" (timeupdate)="onTimeUpdate()"
+                   (pause)="onPause()" (ended)="onEnded()" (error)="onError()"></video>
+
+            <button type="button" class="btn btn-dark btn-sm fs-btn"
+                    [attr.aria-label]="fullscreen() ? 'Exit full screen' : 'Full screen'" (click)="toggleFullscreen()">
+              <i class="bi" [class.bi-fullscreen]="!fullscreen()" [class.bi-fullscreen-exit]="fullscreen()"></i>
+            </button>
+
+            @if (buffering() && !ui().error) {
+              <div class="overlay center" aria-live="polite">
+                <div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading</span></div>
+              </div>
+            }
+
+            @if (ui().error; as text) {
+              <div class="overlay center" role="alert">
+                <div class="panel text-center">
+                  <p class="mb-2">{{ text }}</p>
+                  <button type="button" class="btn btn-brand btn-sm" (click)="retryPlayback()">Try again</button>
+                </div>
+              </div>
+            } @else if (ui().countdown !== null) {
+              <div class="overlay corner" aria-live="polite">
+                <div class="panel">
+                  @if (next(); as n) {
+                    <p class="mb-2 small">Next: S{{ n.season }} E{{ n.number }} · {{ n.title }}<br>starts in {{ ui().countdown }} s</p>
+                  }
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-brand btn-sm" (click)="goNext()">Play now</button>
+                    <button type="button" class="btn btn-outline-light btn-sm" (click)="cancelCountdown()">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            } @else if (ui().ended) {
+              <div class="overlay center">
+                <div class="panel text-center">
+                  <p class="mb-2">{{ next() ? 'Episode finished' : 'Finished' }}</p>
+                  <div class="d-flex flex-wrap justify-content-center gap-2">
+                    @if (next()) { <button type="button" class="btn btn-brand btn-sm" (click)="goNext()">Next episode</button> }
+                    <button type="button" class="btn btn-outline-light btn-sm" (click)="watchAgain()">Watch again</button>
+                    <a class="btn btn-outline-light btn-sm" [routerLink]="back()">Back</a>
+                  </div>
+                </div>
+              </div>
+            }
+
+            @if (ui().resumedAt !== null) {
+              <div class="toast-resume" aria-live="polite">
+                Resumed at {{ formatTime(ui().resumedAt!) }}
+                <button type="button" class="btn btn-link btn-sm p-0 ms-2" (click)="startOver()">Start over</button>
+              </div>
+            }
+          </div>
+
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2">
+            <p class="small text-muted mb-0">Space play/pause · ← → 5 s · J L 10 s · F full screen · M mute @if (next()) { · N next episode }</p>
+            @if (m.type === 'tv-series') {
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" role="switch" id="autoNext"
+                       [checked]="autoNext()" (change)="toggleAutoNext()">
+                <label class="form-check-label small" for="autoNext">Play the next episode automatically</label>
+              </div>
+            }
+          </div>
+
+        } @else {
+          <p class="text-muted">
+            {{ m.type === 'film' ? 'This film has no video yet.' : 'This series has no episode with a video yet.' }}
+          </p>
+        }
+      </div>
+
+      @if (m.type === 'tv-series') {
+        <aside class="col-12 col-xl-3">
+          <div class="episodes">
+            @for (group of seasons(); track group.season) {
+              <h2 class="h6 text-uppercase text-muted mt-2 mb-1">Season {{ group.season }}</h2>
+              <ul class="list-group list-group-flush mb-2">
+                @for (row of group.rows; track row.episode.id) {
+                  <li class="list-group-item bg-transparent px-0">
+                    <a class="d-block text-reset text-decoration-none py-1" [routerLink]="['/watch', 'tv-series', m.id]"
+                       [queryParams]="{ episode: row.episode.id }"
+                       [attr.aria-current]="row.episode.id === episode()?.id ? 'true' : null">
+                      <div class="d-flex justify-content-between gap-2" [class.fw-bold]="row.episode.id === episode()?.id">
+                        <span>{{ row.episode.number }}. {{ row.episode.title }}</span>
+                        @if (row.percent === 100) { <i class="bi bi-check-circle-fill text-success" aria-label="Watched"></i> }
+                        @else { <small class="text-muted">{{ row.episode.durationMinutes }} min</small> }
+                      </div>
+                      @if (row.percent > 0 && row.percent < 100) {
+                        <div class="progress mt-1" role="progressbar" [attr.aria-valuenow]="row.percent" aria-valuemin="0" aria-valuemax="100">
+                          <div class="progress-bar bg-danger" [style.width.%]="row.percent"></div>
+                        </div>
+                      }
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </aside>
+      }
+    </div>
+
+  } @else {
     <p class="text-muted">Not found.</p>
-    } @else {
-    <p class="text-muted">Loading…</p>
-    }
+  }
 </main>

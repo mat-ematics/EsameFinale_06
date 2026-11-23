@@ -1,0 +1,78 @@
+:host { display: block; }
+
+.stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 78dvh;
+    overflow: hidden;
+    border-radius: .5rem;
+    background: #000;
+
+    &.is-fullscreen,
+    &:fullscreen {
+        max-height: none;
+        height: 100%;
+        aspect-ratio: auto;
+        border-radius: 0;
+    }
+}
+
+.player {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+.fs-btn {
+    position: absolute;
+    top: .75rem;
+    right: .75rem;
+    z-index: 3;
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+
+.stage:hover .fs-btn,
+.fs-btn:focus-visible { opacity: 1; }
+
+@media (hover: none) { .fs-btn { opacity: 1; } }
+
+.overlay {
+    position: absolute;
+    z-index: 2;
+    display: flex;
+    pointer-events: none;                          // the video's controls stay usable around the panels
+
+    &.center { inset: 0; align-items: center; justify-content: center; }
+    &.corner { right: 1rem; bottom: 4rem; }
+}
+
+.panel {
+    pointer-events: auto;
+    padding: 1rem;
+    border-radius: .5rem;
+    background: rgba(0, 0, 0, .8);
+    color: #fff;
+}
+
+.toast-resume {
+    position: absolute;
+    left: 1rem;
+    bottom: 4rem;
+    z-index: 2;
+    padding: .4rem .75rem;
+    border-radius: .375rem;
+    background: rgba(0, 0, 0, .8);
+    color: #fff;
+    font-size: .875rem;
+}
+
+.episodes {
+    max-height: 78dvh;
+    overflow-y: auto;
+}
+
+.progress { height: 3px; }

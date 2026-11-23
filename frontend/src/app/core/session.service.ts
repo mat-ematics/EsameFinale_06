@@ -22,4 +22,5 @@ export class SessionService {
   readonly roles = computed(() => this.claims()?.data?.roles ?? []);
   readonly isAdmin = computed(() => this.roles().includes('admin'));
   readonly displayName = computed(() => this.claims()?.data?.name ?? 'Account');
+  readonly userId = computed(() => this.claims()?.sub ?? 'anonymous');
 }

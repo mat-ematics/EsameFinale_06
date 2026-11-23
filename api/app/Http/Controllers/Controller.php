@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\AppHelpers;
+use App\Models\File\Upload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
@@ -46,9 +47,15 @@ abstract class Controller
         return $limit > 0 ? min($limit, 100) : null;
     }
 
-    /** The files sent with a media request: cover, banner and video, whichever are there */
+    /** Files and finished uploads sent with a media request: cover and banner (files), video (a chunked upload) */
     protected function uploads(Request $request): array
     {
-        return Arr::only($request->allFiles(), ['cover', 'banner', 'video']);
+        $sources = Arr::only($request->allFiles(), ['cover', 'banner']);
+
+        if ($id = $request->input('video_upload_id')) {
+            $sources['video'] = Upload::where('user_id', $request->user()->id)->where('status', 'complete')->findOrFail($id);
+        }
+
+        return $sources;
     }
 }

@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { adminGuard, authGuard, guestGuard } from './core/auth.guard.js';
 
 export const routes: Routes = [
-    { path: '', redirectTo: 'register', pathMatch: 'full' },
+    { path: '', redirectTo: 'login', pathMatch: 'full' },
     {
         path: 'register',
         canActivate: [guestGuard],
@@ -35,7 +35,7 @@ export const routes: Routes = [
 
             // Admin (placeholders until the real pages exist)
             {
-            path: 'admin',
+                path: 'admin',
                 canActivateChild: [adminGuard],
                 children: [
                     { path: 'films/new', data: { type: 'film' }, loadComponent: () => import('./features/admin/media-form/media-form.component').then(m => m.MediaFormComponent) },
@@ -45,8 +45,7 @@ export const routes: Routes = [
                 ],
             },
             { path: 'watch/film/:id', data: { type: 'film' }, loadComponent: () => import('./features/watch/watch.component').then(m => m.WatchComponent) },
-            { path: 'watch/tv-series/:id/:episodeId', data: { type: 'tv-series' }, loadComponent: () => import('./features/watch/watch.component').then(m => m.WatchComponent) },
-        ],
+            { path: 'watch/tv-series/:id', data: { type: 'tv-series' }, loadComponent: () => import('./features/watch/watch.component').then(m => m.WatchComponent) },        ],
     },
     {
         path: 'profile',

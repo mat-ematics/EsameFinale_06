@@ -1,16 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { finalize, Observable, of, switchMap } from 'rxjs';
+import { finalize, Observable, of, startWith, switchMap } from 'rxjs';
 import { MediaRowComponent } from '../../shared/media-row/media-row.component';
 import { MediaCatalogService } from '../../core/media-catalog.service';
 import { SessionService } from '../../core/session.service';
 import { Crumb, Episode, MediaSummary, genreCrumb, mediaSectionLink, mediaSegment, typeCrumb } from '../../models/media';
 import { MediaType } from '../../models/media';
-import { Router } from 'express';
+import { Router } from '@angular/router';
 import { MediaAdminService } from '../../core/media-admin.service.js';
 import { apiErrorMessage } from '../../core/api.service.js';
 import { EpisodeFormComponent } from './episode-form/episode-form.component';
 import { ModalComponent } from '../../shared/modal/modal.component';
+import { loaded } from '../../core/load-state.js';
 
 @Component({
   selector: 'app-media-detail',
@@ -33,10 +34,14 @@ export class MediaDetailComponent {
     /** Bumped after every change, so the page loads again */
     private readonly reload = signal(0);
 
-    protected readonly media = toSignal(
+    private readonly state = toSignal(
     toObservable(computed(() => ({ type: this.type(), id: Number(this.id()), reload: this.reload() })))
-        .pipe(switchMap(({ type, id }) => this.catalog.detail(type, id))),
+        .pipe(switchMap(({ type, id }) => loaded(this.catalog.detail(type, id)).pipe(startWith(undefined)))),
     );
+
+    /** undefined = loading, null = not found or failed */
+    protected readonly media = computed(() => (this.state() === undefined ? undefined : this.state()!.data));
+    protected readonly loadError = computed(() => this.state()?.error ?? null);
 
   protected readonly actionError = signal<string | null>(null);
   protected readonly busy = signal(false);
@@ -114,15 +119,15 @@ export class MediaDetailComponent {
   protected readonly confirmingDelete = signal(false);
 
     protected play(episode?: Episode) {
-    const m = this.media();
-    if (!m) return;
+        const m = this.media();
+        if (!m) return;
 
-    if (m.type === 'film') {
-        this.router.navigate(['/watch', 'film', m.id]);
-        return;
-    }
-    const target = episode ?? m.episodes?.find(e => e.videoUrl && !e.deleted);
-    if (target) this.router.navigate(['/watch', 'tv-series', m.id, target.id]);
+        if (m.type === 'film') {
+            this.router.navigate(['/watch', 'film', m.id]);
+            return;
+        }
+        // Without an episode, the player continues the last one watched (or starts the first)
+        this.router.navigate(['/watch', 'tv-series', m.id], episode ? { queryParams: { episode: episode.id } } : {});
     }
 
     protected edit() {

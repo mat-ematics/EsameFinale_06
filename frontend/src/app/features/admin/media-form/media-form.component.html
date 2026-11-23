@@ -112,13 +112,11 @@
         </div>
 
         @if (isFilm()) {
-          <div class="mb-3">
-            <label class="form-label" for="mfVideo">Video (MP4, up to 50 MB) @if (!editing()) { <span class="required-text">*</span> }</label>
-            @if (editing() && existing()?.videoUrl && !video()) { <div class="form-text mb-1">A video is already uploaded. Choose a file to replace it.</div> }
-            <input id="mfVideo" type="file" class="form-control" accept="video/mp4"
-                   [ngClass]="{ 'is-invalid': bad('video') }" (change)="pick('video', $event)">
-            <div class="invalid-feedback" [class.is-shown]="bad('video')">{{ error('video') }}</div>
-          </div>
+            <div class="mb-3">
+            <app-video-upload inputId="mfVideo" [required]="!editing()" [existing]="existing()?.videoUrl ?? null"
+                            [invalid]="bad('video')" [errorText]="error('video')"
+                            [(uploadId)]="videoUploadId" [(uploading)]="videoBusy" />
+            </div>
         }
       </fieldset>
 
@@ -131,8 +129,7 @@
 
       <div class="d-flex justify-content-end gap-2">
         <a class="btn btn-outline-light" [routerLink]="backLink()" [class.disabled]="saving()">Cancel</a>
-        <button type="submit" class="btn btn-danger" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save' }}</button>
-      </div>
+<button type="submit" class="btn btn-danger" [disabled]="saving() || videoBusy()">{{ saving() ? 'Saving…' : 'Save' }}</button>      </div>
     </form>
   </main>
 }

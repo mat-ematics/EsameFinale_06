@@ -8,12 +8,12 @@ import { apiErrorDetails } from '../../../core/api.service';
 import { MediaAdminService } from '../../../core/media-admin.service';
 import { MediaCatalogService } from '../../../core/media-catalog.service';
 import { Category, MEDIA_LABEL, MediaDetail, MediaType, mediaLink, mediaSectionLink } from '../../../models/media';
+import { VideoUploadComponent } from '../../../shared/video-upload/video-upload.component';
 
-type Kind = 'cover' | 'banner' | 'video';
+type Kind = 'cover' | 'banner';
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_IMAGE = 5 * 1024 * 1024;
-const MAX_VIDEO = 50 * 1024 * 1024;
 const THIS_YEAR = new Date().getFullYear();
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -21,11 +21,16 @@ const pad = (n: number) => String(n).padStart(2, '0');
 const toLength = (minutes: number) => `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}:00`;
 
 /** API field names that the form shows under a different name */
-const FIELD_MAP: Record<string, string> = { start_year: 'year', end_year: 'endYear', length: 'minutes' };
+const FIELD_MAP: Record<string, string> = { 
+    start_year: 'year',
+    end_year: 'endYear',
+    length: 'minutes',
+    video_upload_id: 'video',
+};
 
 @Component({
   selector: 'app-media-form',
-  imports: [ReactiveFormsModule, NgClass, RouterLink],
+  imports: [ReactiveFormsModule, NgClass, RouterLink, VideoUploadComponent],
   templateUrl: './media-form.component.html',
 })
 export class MediaFormComponent {
@@ -54,7 +59,8 @@ export class MediaFormComponent {
 
   protected readonly cover = signal<File | null>(null);
   protected readonly banner = signal<File | null>(null);
-  protected readonly video = signal<File | null>(null);
+  protected readonly videoUploadId = signal<string | null>(null);
+  protected readonly videoBusy = signal(false);
   protected readonly coverPreview = signal<string | null>(null);
   protected readonly bannerPreview = signal<string | null>(null);
   protected readonly removeBanner = signal(false);
@@ -126,10 +132,7 @@ export class MediaFormComponent {
     delete errors[kind];
 
     if (file) {
-      if (kind === 'video') {
-        if (file.type !== 'video/mp4') errors[kind] = 'The video must be an MP4 file';
-        else if (file.size > MAX_VIDEO) errors[kind] = 'The video cannot exceed 50 MB';
-      } else if (!IMAGE_TYPES.includes(file.type)) errors[kind] = 'Use a JPG, PNG or WebP image';
+     if (!IMAGE_TYPES.includes(file.type)) errors[kind] = 'Use a JPG, PNG or WebP image';
       else if (file.size > MAX_IMAGE) errors[kind] = 'The image cannot exceed 5 MB';
     }
     this.clientErrors.set(errors);
@@ -145,7 +148,6 @@ export class MediaFormComponent {
 
   private setFile(kind: Kind, file: File | null) {
     this[kind].set(file);
-    if (kind === 'video') return;
 
     const preview = kind === 'cover' ? this.coverPreview : this.bannerPreview;
     this.revoke(preview());
@@ -177,20 +179,23 @@ export class MediaFormComponent {
     if (!v.categories.length) errors['categories'] = 'Pick at least one genre';
 
     if (this.isFilm()) {
-      if (!Number.isInteger(minutes) || minutes < 1 || minutes > 240) errors['minutes'] = 'Enter the duration in minutes (1-240)';
+        if (this.videoBusy()) errors['video'] = 'Wait for the video upload to finish';
+        else if (!this.editing() && !this.videoUploadId()) errors['video'] = 'A video file is required';
     } else if (v.endYear && Number(v.endYear) < year) {
       errors['endYear'] = 'The end year cannot be before the start year';
     }
 
     if (!this.editing() && !this.cover()) errors['cover'] = 'A cover image is required';
-    if (this.isFilm() && !this.editing() && !this.video()) errors['video'] = 'A video file is required';
 
-    return { ...errors, ...Object.fromEntries(Object.entries(this.clientErrors()).filter(([k]) => ['cover', 'banner', 'video'].includes(k))) };
+    return { ...errors, ...Object.fromEntries(Object.entries(this.clientErrors()).filter(([k]) => ['cover', 'banner'].includes(k))) };
   }
 
   private formData(): FormData {
     const v = this.form.getRawValue();
     const data = new FormData();
+
+    const id = this.videoUploadId();
+    if (id && this.isFilm()) data.append('video_upload_id', id);
 
     data.append('name', v.name.trim());
     data.append('description', v.description.trim());          // empty clears it: the server turns '' into null
@@ -201,10 +206,9 @@ export class MediaFormComponent {
     data.append('actors', v.actors.trim());
     v.categories.forEach(name => data.append('categories[]', name));
 
-    const [cover, banner, video] = [this.cover(), this.banner(), this.video()];
+    const [cover, banner] = [this.cover(), this.banner()];
     if (cover) data.append('cover', cover);
     if (banner) data.append('banner', banner);
-    if (video && this.isFilm()) data.append('video', video);
     if (this.removeBanner()) data.append('remove_banner', '1');
 
     return data;

@@ -2,18 +2,10 @@
 
 namespace App\Http\Requests\Media\TvSeries;
 
-use App\Enums\MediaTypeEnum;
-use App\Helpers\MediaFileRulesHelper;
-use App\Models\Media\Category;
-use App\Rules\YearRule;
-use Illuminate\Foundation\Http\FormRequest;
+use App\Http\Requests\Media\MediaUploadRules;
 use Illuminate\Validation\Rule;
-
-namespace App\Http\Requests\Media;
-
 use App\Models\Media\TvSeries;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class TvSeriesStoreRequest extends FormRequest
 {

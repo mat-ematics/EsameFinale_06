@@ -7,14 +7,20 @@ import { apiErrorDetails } from '../../../core/api.service';
 import { MediaAdminService } from '../../../core/media-admin.service';
 import { ModalComponent } from '../../../shared/modal/modal.component';
 import { Episode } from '../../../models/media';
+import { VideoUploadComponent } from '../../../shared/video-upload/video-upload.component';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const toLength = (minutes: number) => `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}:00`;
-const FIELD_MAP: Record<string, string> = { season_number: 'season', episode_number: 'number', length: 'minutes' };
+const FIELD_MAP: Record<string, string> = {
+    season_number: 'season',
+    episode_number: 'number',
+    length: 'minutes',
+    video_upload_id: 'video',
+};
 
 @Component({
   selector: 'app-episode-form',
-  imports: [ModalComponent, ReactiveFormsModule, NgClass],
+  imports: [ModalComponent, ReactiveFormsModule, NgClass, VideoUploadComponent],
   templateUrl: './episode-form.component.html',
 })
 export class EpisodeFormComponent {
@@ -34,7 +40,10 @@ export class EpisodeFormComponent {
   protected readonly form = this.fb.group({
     name: [''], description: [''], season: [''], number: [''], minutes: [''], year: [''],
   });
-  protected readonly video = signal<File | null>(null);
+
+  protected readonly videoUploadId = signal<string | null>(null);
+  protected readonly videoBusy = signal(false);
+
   protected readonly cover = signal<File | null>(null);
   protected readonly errors = signal<Record<string, string>>({});
   protected readonly formError = signal<string | null>(null);
@@ -58,16 +67,18 @@ export class EpisodeFormComponent {
       minutes: e?.durationMinutes ? String(e.durationMinutes) : '',
       year: String(e?.year ?? s.year),
     });
-    this.video.set(null);
     this.cover.set(null);
     this.errors.set({});
     this.formError.set(null);
     this.progress.set(0);
+
+    this.videoUploadId.set(null);
+    this.videoBusy.set(false);
   }
 
-  protected pick(kind: 'video' | 'cover', event: Event) {
+  protected pick(kind: 'cover', event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0] ?? null;
-    (kind === 'video' ? this.video : this.cover).set(file);
+    this.cover.set(file);
   }
 
   protected bad(field: string) { return !!this.errors()[field]; }
@@ -83,9 +94,8 @@ export class EpisodeFormComponent {
     if (!int(v.minutes, 1, 240)) errors['minutes'] = 'Enter the duration in minutes (1-240)';
     if (!int(v.year, 1888, new Date().getFullYear() + 1)) errors['year'] = 'Enter a valid year';
 
-    const video = this.video();
-    if (!this.episode() && !video) errors['video'] = 'A video file is required';
-    if (video && (video.type !== 'video/mp4' || video.size > 50 * 1024 * 1024)) errors['video'] = 'An MP4 file up to 50 MB';
+    if (this.videoBusy()) errors['video'] = 'Wait for the video upload to finish';
+    else if (!this.episode() && !this.videoUploadId()) errors['video'] = 'A video file is required';
 
     const cover = this.cover();
     if (cover && (!['image/jpeg', 'image/png', 'image/webp'].includes(cover.type) || cover.size > 5 * 1024 * 1024)) {
@@ -108,7 +118,7 @@ export class EpisodeFormComponent {
     data.append('episode_number', v.number);
     data.append('length', toLength(Number(v.minutes)));
     data.append('year', v.year);
-    if (this.video()) data.append('video', this.video()!);
+    if (this.videoUploadId()) data.append('video_upload_id', this.videoUploadId()!);
     if (this.cover()) data.append('cover', this.cover()!);
 
     this.saving.set(true);

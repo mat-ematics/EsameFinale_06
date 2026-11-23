@@ -38,11 +38,10 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label" for="epVideo">Video (MP4, up to 50 MB) @if (!episode()) { <span class="required-text">*</span> }</label>
-        @if (episode()?.videoUrl && !video()) { <div class="form-text mb-1">A video is already uploaded. Choose a file to replace it.</div> }
-        <input id="epVideo" type="file" class="form-control" accept="video/mp4" [ngClass]="{ 'is-invalid': bad('video') }" (change)="pick('video', $event)">
-        <div class="invalid-feedback" [class.is-shown]="bad('video')">{{ errors()['video'] }}</div>
-      </div>
+        <app-video-upload inputId="epVideo" [required]="!episode()" [existing]="episode()?.videoUrl ?? null"
+                            [invalid]="bad('video')" [errorText]="errors()['video'] ?? ''"
+                            [(uploadId)]="videoUploadId" [(uploading)]="videoBusy" />
+        </div>
 
       <div class="mb-3">
         <label class="form-label" for="epCover">Cover</label>
@@ -57,7 +56,7 @@
 
       <div class="d-flex justify-content-end gap-2">
         <button type="button" class="btn btn-outline-light" [disabled]="saving()" (click)="closed.emit()">Cancel</button>
-        <button type="submit" class="btn btn-danger" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save' }}</button>
+        <button type="submit" class="btn btn-danger" [disabled]="saving() || videoBusy()">{{ saving() ? 'Saving…' : 'Save' }}</button>
       </div>
     </form>
   }

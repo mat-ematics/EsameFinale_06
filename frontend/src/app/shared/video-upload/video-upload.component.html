@@ -1,0 +1,37 @@
+<label class="form-label" [attr.for]="inputId()">
+  {{ label() }} @if (required()) { <span class="required-text">*</span> }
+</label>
+
+@if (state() === 'idle' && existing()) {
+  <div class="form-text mb-1">A video is already uploaded. Choose a file to replace it.</div>
+}
+
+<input #fileInput type="file" accept="video/mp4" class="form-control" [id]="inputId()"
+       [class.is-invalid]="invalid() || state() === 'error'"
+       [disabled]="state() === 'uploading'" (change)="pick($event)">
+
+@switch (state()) {
+  @case ('uploading') {
+    <div class="d-flex align-items-center gap-2 mt-2">
+      <div class="progress flex-grow-1" role="progressbar" [attr.aria-valuenow]="percent()" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-bar bg-danger" [style.width.%]="percent()">{{ percent() }}%</div>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-light" (click)="cancel()">Cancel</button>
+    </div>
+    <div class="form-text">{{ message() || ('Uploading ' + fileName() + '…') }}</div>
+  }
+  @case ('ready') {
+    <div class="d-flex align-items-center gap-2 mt-2">
+      <span class="text-success small"><i class="bi bi-check-circle-fill"></i> {{ fileName() }} is uploaded</span>
+      <button type="button" class="btn btn-sm btn-outline-light" (click)="cancel()">Remove</button>
+    </div>
+  }
+  @case ('error') {
+    <div class="d-flex align-items-center gap-2 mt-2">
+      <span class="text-danger small">{{ message() }}</span>
+      @if (fileName()) { <button type="button" class="btn btn-sm btn-outline-light" (click)="retry()">Try again</button> }
+    </div>
+  }
+}
+
+<div class="invalid-feedback" [class.is-shown]="invalid() && state() !== 'error'">{{ errorText() }}</div>

@@ -5,7 +5,7 @@ namespace App\Services\File;
 use App\Enums\FileVisibilityEnum;
 use App\Enums\MediaRoleEnum;
 use App\Models\File\File;
-use Illuminate\Contracts\Filesystem\Filesystem;
+use App\Models\File\Upload;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +19,8 @@ use RuntimeException;
  */
 class MediaFileService
 {
+    public function __construct(protected ChunkedUploadService $uploads) {}
+
     private function disk()
     {
         return Storage::disk('media');
@@ -30,11 +32,12 @@ class MediaFileService
         return Str::plural(Str::kebab(class_basename($media))) . '/' . $media->getKey();
     }
 
-    public function storeMany(Model $media, array $uploads): void
+    public function storeMany(Model $media, array $sources): void
     {
         foreach (MediaRoleEnum::cases() as $role) {
-            $upload = $uploads[$role->value] ?? null;
-            if ($upload instanceof UploadedFile) $this->store($media, $role, $upload);
+            $source = $sources[$role->value] ?? null;
+            if ($source instanceof UploadedFile) $this->store($media, $role, $source);
+            elseif ($source instanceof Upload) $this->adopt($media, $role, $source);
         }
     }
 
@@ -54,27 +57,100 @@ class MediaFileService
         }
 
         try {
-            return DB::transaction(function () use ($media, $role, $directory, $filename, $size, $mime, $hash, $extension) {
-                $this->remove($media, $role, keepFilename: $filename);
-
-                $file = File::create([
-                    'filename'   => $filename,
-                    'label'      => $role->value,
-                    'visibility' => FileVisibilityEnum::default()->value,
-                    'path'       => $directory,
-                    'size'       => $size,
-                    'mime_type'  => $mime,
-                    'extension'  => $extension,
-                    'hash'       => $hash,
-                ]);
-
-                $media->files()->attach($file->id, ['role' => $role->value]);
-                return $file;
-            });
+            return $this->register($media, $role, $directory, $filename, $size, $mime, $hash, $extension);
         } catch (\Throwable $e) {
             $this->disk()->delete("{$directory}/{$filename}");
             throw $e;
         }
+    }
+
+    /** A finished chunked upload: moves it into the title's folder (a rename, not a copy) */
+    public function adopt(Model $media, MediaRoleEnum $role, Upload $upload): File
+    {
+        abort_unless($upload->status === 'complete', 422, 'The video upload is not finished');
+
+        $source = $this->uploads->path($upload);
+        abort_unless(is_file($source), 422, 'The uploaded video is missing: upload it again');
+
+        $extension = strtolower(pathinfo($upload->filename, PATHINFO_EXTENSION)) ?: 'mp4';
+        $directory = $this->directory($media);
+        $filename  = "{$role->value}.{$extension}";
+
+        $this->disk()->makeDirectory($directory);
+        $target = $this->disk()->path("{$directory}/{$filename}");
+
+        if (is_file($target)) @unlink($target);                       // Windows does not overwrite on rename
+        if (!@rename($source, $target)) {                             // another filesystem: copy, then remove
+            if (!copy($source, $target)) throw new RuntimeException('Could not move the uploaded video');
+            @unlink($source);
+        }
+
+        $size = (int) filesize($target);
+        $hash = hash_file('sha256', $target);                         // about 3 seconds per GB
+
+        try {
+            $file = $this->register($media, $role, $directory, $filename, $size, 'video/mp4', $hash, $extension);
+        } catch (\Throwable $e) {
+            @rename($target, $source);                                // put it back: the admin does not have to upload again
+            throw $e;
+        }
+
+        $upload->delete();                                            // the temp file is gone: only the row is left
+        return $file;
+    }
+
+    /** The database part, shared by both ways of storing a file */
+    private function register(
+        Model $media, MediaRoleEnum $role, string $directory, string $filename,
+        int $size, string $mime, string $hash, string $extension,
+    ): File {
+        return DB::transaction(function () use ($media, $role, $directory, $filename, $size, $mime, $hash, $extension) {
+
+            // $this->remove($media, $role, keepFilename: $filename);
+
+            $file = File::create([
+                'filename'   => $filename,
+                'label'      => $role->value,
+                'visibility' => FileVisibilityEnum::default()->value,
+                'path'       => $directory,
+                'size'       => $size,
+                'mime_type'  => $mime,
+                'extension'  => $extension,
+                'hash'       => $hash,
+            ]);
+
+            DB::table('fileables')->upsert(
+                [
+                    'file_id'       => $file->id,
+                    'fileable_type' => $media->getMorphClass(),
+                    'fileable_id'   => $media->getKey(),
+                    'role'          => $role->value,
+                ],
+                ['fileable_type', 'fileable_id', 'role'], // conflict target = the unique key
+                ['file_id'],                              // on conflict: repoint to the new file
+            );
+
+            // Clean up the old file (if the pivot previously pointed elsewhere)
+            $this->removeOld($media, $role, $file->id, $filename);
+
+            // $media->files()->attach($file->id, ['role' => $role->value]);
+            return $file;
+        });
+    }
+
+    /** Deletes the files row + disk file of a role, except the new one just registered */
+    private function removeOld(Model $media, MediaRoleEnum $role, int $newFileId, string $newFilename): void
+    {
+        $media->files()
+            ->wherePivot('role', $role->value)
+            ->where('files.id', '!=', $newFileId)
+            ->get()
+            ->each(function (File $file) use ($newFilename) {
+                if ($file->filename !== $newFilename) {
+                    $this->disk()->delete("{$file->path}/{$file->filename}");
+                }
+                $file->forceDelete();
+            });
     }
 
     /** Removes the file of a role (disk, link and row). Without one, it does nothing */
@@ -84,7 +160,7 @@ class MediaFileService
         if (!$file) return;
 
         $media->files()->detach($file->id);
-        if ($file->filename !== $keepFilename) {          // same name: the new upload already replaced it
+        if ($file->filename !== $keepFilename) {          // same name: the new file already replaced it
             $this->disk()->delete("{$file->path}/{$file->filename}");
         }
         $file->forceDelete();

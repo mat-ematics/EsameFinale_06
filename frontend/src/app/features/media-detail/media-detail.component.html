@@ -31,6 +31,7 @@
             {{ canPlay() ? 'Play' : 'No video yet' }} <i class="bi bi-play-circle"></i>
         </button>
 
+        <!-- Admin only (UI): the server enforces it too -->
         @if (session.isAdmin() && !m.deleted) {
             <button type="button" class="btn btn-outline-warning" (click)="edit()">Edit <i class="bi bi-pencil-square"></i></button>
             @if (!confirmingDelete()) {
@@ -43,20 +44,6 @@
         </div>
         @if (actionError()) { <div class="alert alert-danger" role="alert">{{ actionError() }}</div> }
 
-        <!-- Admin only (UI): the server enforces it too -->
-        @if (session.isAdmin()) {
-          <button type="button" class="btn btn-outline-warning" (click)="edit()">
-            Edit <i class="bi bi-pencil-square"></i>
-          </button>
-          @if (!confirmingDelete()) {
-            <button type="button" class="btn btn-outline-warning" (click)="confirmingDelete.set(true)">
-              Delete <i class="bi bi-trash-fill"></i>
-            </button>
-          } @else {
-            <button type="button" class="btn btn-danger" (click)="remove()">Confirm delete</button>
-            <button type="button" class="btn btn-outline-light" (click)="confirmingDelete.set(false)">Cancel</button>
-          }
-        }
       </div>
 
       <p class="tos">By pressing Play you accept our <span class="color-brand-dark">Terms of Use</span></p>
@@ -121,6 +108,8 @@
     </div>
     </app-modal>
 
+} @else if (loadError(); as message) {
+  <main class="container py-5 min-vh-100"><div class="alert alert-danger" role="alert">{{ message }}</div></main>
 } @else if (media() === null) {
   <main class="container py-5 min-vh-100">
     <h1 class="h3">Not found</h1>

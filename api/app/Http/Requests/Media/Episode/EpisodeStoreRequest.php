@@ -2,15 +2,12 @@
 
 namespace App\Http\Requests\Media\Episode;
 
-use App\Enums\MediaTypeEnum;
-use App\Helpers\MediaFileRulesHelper;
+
 use App\Http\Requests\Media\MediaUploadRules;
 use App\Rules\MediaLength;
-use App\Rules\YearRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
-class EpisodeRequest extends FormRequest
+class EpisodeStoreRequest extends FormRequest
 {
     use MediaUploadRules;
 
@@ -33,7 +30,7 @@ class EpisodeRequest extends FormRequest
             'year'           => [$required, 'integer', 'between:1888,' . $this->maxYear()],
 
             'cover' => ['sometimes', ...$this->imageRules()],
-            'video' => [$creating ? 'required' : 'sometimes', ...$this->videoRules()],
+            'video_upload_id' => [$creating ? 'required' : 'sometimes', 'uuid', $this->uploadRule()],
         ];
     }
 }

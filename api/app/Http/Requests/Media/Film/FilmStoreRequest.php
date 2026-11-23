@@ -33,7 +33,7 @@ class FilmStoreRequest extends FormRequest
 
             'cover'         => [$creating ? 'required' : 'sometimes', ...$this->imageRules()],
             'banner'        => ['sometimes', ...$this->imageRules()],
-            'video'         => [$creating ? 'required' : 'sometimes', ...$this->videoRules()],
+            'video_upload_id' => [$creating ? 'required' : 'sometimes', 'uuid', $this->uploadRule()],
             'remove_banner' => ['sometimes', 'boolean'],
         ];
     }

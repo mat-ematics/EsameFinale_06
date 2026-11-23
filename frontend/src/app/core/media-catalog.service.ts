@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, forkJoin, map, of, shareReplay, throwError } from 'rxjs';
+import { Observable, OperatorFunction, catchError, forkJoin, map, of, shareReplay, throwError } from 'rxjs';
 import { ApiService } from './api.service';
 import { toDetail, toSlide, toSummary } from './media-mappers';
 import { ApiEpisode, ApiMedia } from '../models/media-api';
-import { Category, MediaDetail, MediaSummary, MediaType, matchesGenre, mediaSegment, sameGenre } from '../models/media';
+import { Category, MediaDetail, MediaSummary, MediaType, matchesGenre, mediaSegment } from '../models/media';
 
 export interface MediaFilter {
   type?: MediaType;
@@ -15,21 +15,28 @@ export interface MediaFilter {
 @Injectable({ providedIn: 'root' })
 export class MediaCatalogService extends ApiService {
 
-  /** The genres rarely change: fetched once and shared */
+  /** The genres rarely change: fetched once and shared. A failure is not cached: the next call retries */
   private readonly all$ = this.request<Category[]>(['categories'], 'GET', null, { compact: 1 }).pipe(
     map(res => (res.data ?? []).map(({ name, label }) => ({ name, label: label || name }))),
     shareReplay({ bufferSize: 1, refCount: false }),
-    );
+  );
 
-    categories(): Observable<Category[]> {
-        return this.all$;
-    }
+  /** A failed request must not blank a page: log the cause and show an empty list */
+  private soft<T>(fallback: T): OperatorFunction<T, T> {
+    return catchError(err => {
+      console.error('[catalog]', err);
+      return of(fallback);
+    });
+  }
 
-    /** The genre behind a URL slug, ignoring case. null = no such genre */
-    genre(slug: string): Observable<Category | null> {
-        return this.all$.pipe(map(list => list.find(category => matchesGenre(category, slug)) ?? null));
-    }
+  categories(): Observable<Category[]> {
+    return this.all$.pipe(this.soft([] as Category[]));
+  }
 
+  /** The genre behind a URL slug, ignoring case. null = no such genre */
+  genre(slug: string): Observable<Category | null> {
+    return this.categories().pipe(map(list => list.find(category => matchesGenre(category, slug)) ?? null));
+  }
 
   featured(filter: MediaFilter = {}): Observable<MediaSummary[]> {
     const params: Record<string, string | number> = { limit: 5 };
@@ -38,6 +45,7 @@ export class MediaCatalogService extends ApiService {
 
     return this.request<ApiMedia[]>(['media', 'featured'], 'GET', null, params).pipe(
       map(res => (res.data ?? []).map(toSlide)),
+      this.soft([] as MediaSummary[]),
     );
   }
 
@@ -55,7 +63,7 @@ export class MediaCatalogService extends ApiService {
       : forkJoin([this.fetch('film', params), this.fetch('tv-series', params)]).pipe(map(([a, b]) => [...a, ...b]));
   }
 
-  /** null = not found */
+  /** null = not found. Other errors are thrown: the page shows the message (see load-state.ts) */
   detail(type: MediaType, id: number): Observable<MediaDetail | null> {
     if (!Number.isInteger(id)) return of(null);
 
@@ -82,6 +90,7 @@ export class MediaCatalogService extends ApiService {
   private fetch(type: MediaType, params: Record<string, string | number>): Observable<MediaSummary[]> {
     return this.request<ApiMedia[]>([mediaSegment(type)], 'GET', null, params).pipe(
       map(res => (res.data ?? []).map(toSummary)),
+      this.soft([] as MediaSummary[]),
     );
   }
 }
